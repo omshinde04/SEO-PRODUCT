@@ -68,7 +68,6 @@ export default function PublicHome({ initialData = null }) {
   const [submitted, setSubmitted] = useState({ q: "", location: "", businessType: "" });
   const [businesses, setBusinesses] = useState(initialData?.businesses || []);
   const [categories, setCategories] = useState(initialData?.categories || []);
-  const [locations, setLocations] = useState(initialData?.locations || []);
   const [pagination, setPagination] = useState(initialData?.pagination || null);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState("");
@@ -84,16 +83,14 @@ export default function PublicHome({ initialData = null }) {
       const [businessResponse, categoryResponse] = await Promise.all([
         fetch(`/api/businesses?${params.toString()}`, { cache: "no-store" }),
         fetch("/api/categories?limit=12", { cache: "no-store" }),
-        fetch("/api/locations?limit=30", { cache: "no-store" }),
       ]);
-      const [businessData, categoryData, locationData] = await Promise.all([
-        businessResponse.json(), categoryResponse.json(), locationResponse.json(),
+      const [businessData, categoryData] = await Promise.all([
+        businessResponse.json(), categoryResponse.json(),
       ]);
       if (!businessResponse.ok || !businessData.success) throw new Error(businessData.message || "We couldn't load listings right now.");
       setBusinesses(businessData.items || []);
       setPagination(businessData.pagination || null);
       setCategories(categoryData.success ? categoryData.items || [] : []);
-      setLocations(locationData.success ? locationData.items || [] : []);
     } catch (loadError) {
       setError(loadError.message || "Something went wrong while loading local discoveries.");
       setBusinesses([]);
@@ -168,7 +165,7 @@ export default function PublicHome({ initialData = null }) {
         {!loading && pagination?.total > 8 && <div className="section-bottom-note"><span>Showing 8 of {pagination.total} local places</span><Link className="button-secondary" href="/businesses">See every result <Icon name="arrow" size={16} /></Link></div>}
       </section>
 
-      <section className="local-story" id="about"><div className="story-decoration">✳</div><div className="story-copy"><span className="eyebrow">A LITTLE MORE LOCAL</span><h2>There&apos;s more to a place than <em>its pin on a map.</em></h2><p>It's the chai spot that remembers your order. The shop that has exactly what you need. The hidden viewpoint you can&apos;t stop telling people about.</p><p>We&apos;re here to help you find those places — and help the people behind them get found.</p><Link href="/add-business" className="story-link">Know a place we should know? <Icon name="arrow" size={17} /></Link></div><div className="story-art"><div className="story-sun" /><div className="story-hill story-hill-one" /><div className="story-hill story-hill-two" /><div className="story-house"><span /><i /><i /><b /></div><div className="story-stamp"><Icon name="heart" size={22} /><span>MADE WITH<br />LOCAL LOVE</span></div><span className="story-caption">A GOOD PLACE TO BEGIN</span></div></section>
+      <section className="local-story" id="about"><div className="story-decoration">✳</div><div className="story-copy"><span className="eyebrow">A LITTLE MORE LOCAL</span><h2>There&apos;s more to a place than <em>its pin on a map.</em></h2><p>It&apos;s the chai spot that remembers your order. The shop that has exactly what you need. The hidden viewpoint you can&apos;t stop telling people about.</p><p>We&apos;re here to help you find those places — and help the people behind them get found.</p><Link href="/add-business" className="story-link">Know a place we should know? <Icon name="arrow" size={17} /></Link></div><div className="story-art"><div className="story-sun" /><div className="story-hill story-hill-one" /><div className="story-hill story-hill-two" /><div className="story-house"><span /><i /><i /><b /></div><div className="story-stamp"><Icon name="heart" size={22} /><span>MADE WITH<br />LOCAL LOVE</span></div><span className="story-caption">A GOOD PLACE TO BEGIN</span></div></section>
 
       <section className="add-cta"><div className="cta-icon"><Icon name="spark" size={25} /></div><div><span className="eyebrow">FOR THE PEOPLE WHO MAKE A PLACE</span><h2>Your business belongs <em>in the picture.</em></h2><p>Help your neighbours find you. Share what you do, where you are, and what makes you special.</p></div><Link href="/add-business" className="cta-button">Get your business discovered <Icon name="arrow" size={18} /></Link><span className="cta-doodle">↗</span></section>
 
