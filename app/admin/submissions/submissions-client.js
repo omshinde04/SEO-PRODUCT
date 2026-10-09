@@ -51,6 +51,9 @@ export default function SubmissionsClient({ user }) {
     const [notice, setNotice] = useState("");
     const [expandedId, setExpandedId] = useState("");
     const [notesDraft, setNotesDraft] = useState({});
+    const [categories, setCategories] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [listingDrafts, setListingDrafts] = useState({});
 
     useEffect(() => {
         const timer = setTimeout(() => { setQuery(queryInput.trim()); setPage(1); }, 250);
@@ -82,6 +85,85 @@ export default function SubmissionsClient({ user }) {
     }, [page, status, query]);
 
     useEffect(() => { load(); }, [load]);
+
+    useEffect(() => {
+        let active = true;
+        async function loadListingOptions() {
+            try {
+                const [categoryResponse, locationResponse] = await Promise.all([
+                    fetch("/api/admin/categories?limit=100&status=active", { credentials: "same-origin", cache: "no-store" }),
+                    fetch("/api/admin/locations?limit=100&status=active", { credentials: "same-origin", cache: "no-store" }),
+                ]);
+                const [categoryData, locationData] = await Promise.all([
+                    categoryResponse.json(), locationResponse.json(),
+                ]);
+                if (!categoryResponse.ok || !categoryData?.success) throw new Error(categoryData?.message || "Could not load active categories.");
+                if (!locationResponse.ok || !locationData?.success) throw new Error(locationData?.message || "Could not load active locations.");
+                if (active) {
+                    setCategories(categoryData.items || []);
+                    setLocations(locationData.items || []);
+                }
+            } catch (optionError) {
+                if (active) setError(optionError.message || "Could not load categories and locations.");
+            }
+        }
+        loadListingOptions();
+        return () => { active = false; };
+    }, []);
+
+    function updateListingDraft(id, updates, item) {
+        setListingDrafts(current => ({
+            ...current,
+            [id]: {
+                category: current[id]?.category || "",
+                location: current[id]?.location || "",
+                businessType: current[id]?.businessType || "business",
+                description: current[id]?.description ?? item.message ?? "",
+                ...updates,
+            },
+        }));
+    }
+
+    async function createListing(item, publish) {
+        const draft = listingDrafts[item._id] || {};
+        if (!draft.category || !draft.location) {
+            setError("Choose an active category and location before creating the listing.");
+            setExpandedId(item._id);
+            return;
+        }
+        const description = (draft.description ?? item.message ?? "").trim();
+        if (publish && !description) {
+            setError("Add a business description before publishing. The public listing requires one.");
+            setExpandedId(item._id);
+            return;
+        }
+        setBusyId(item._id); setError(""); setNotice("");
+        try {
+            const response = await fetch(`/api/admin/submissions/${item._id}`, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    category: draft.category,
+                    location: draft.location,
+                    businessType: draft.businessType || "business",
+                    description,
+                    publish,
+                }),
+            });
+            const data = await response.json().catch(() => null);
+            if (!response.ok || !data?.success) throw new Error(data?.message || "Unable to create this listing.");
+            setNotice(data.message || (publish ? "Business published successfully." : "Business draft created."));
+            await load({ quiet: true });
+            if (publish && data.publicUrl) {
+                setNotice(`Published successfully: ${window.location.origin}${data.publicUrl}`);
+            }
+        } catch (err) {
+            setError(err.message || "Unable to create this listing.");
+        } finally {
+            setBusyId("");
+        }
+    }
 
     async function updateSubmission(item, updates, successMessage) {
         setBusyId(item._id); setError(""); setNotice("");
@@ -145,9 +227,12 @@ export default function SubmissionsClient({ user }) {
                             <Field label="Contact name">{item.contactName}</Field><Field label="Email"><a className="text-blue-700 hover:underline" href={`mailto:${item.email}`}>{item.email}</a></Field><Field label="Phone"><a className="text-blue-700 hover:underline" href={`tel:${item.phone}`}>{item.phone}</a></Field>
                             <Field label="Business location">{item.locationName}</Field><Field label="Requested category">{item.categoryName}</Field><Field label="Website">{item.website?<a className="break-all text-blue-700 hover:underline" href={item.website} target="_blank" rel="noreferrer">{item.website}</a>:"—"}</Field>
                             <div className="sm:col-span-2 xl:col-span-3"><Field label="Business description / message">{item.message}</Field></div>
-                            <Field label="Submitted on">{formatDate(item.createdAt)}</Field><Field label="Last updated">{formatDate(item.updatedAt)}</Field><Field label="Decision date">{formatDate(item.reviewedAt)}</Field>
+                            <Field label="Submitted on">{formatDate(item.createdAt)}</Field><Field label="Last updated">{formatDate(item.updatedAt)}</Field><Field label="Decision date">{formatDate(item.reviewedAt)}</Field>{item.business&&<Field label="Created listing">{item.business.name} · {item.business.status}</Field>}
                         </div>
-                        <div className="mt-6 border-t border-slate-200 pt-5"><label className="block text-xs font-bold text-slate-700" htmlFor={`notes-${item._id}`}>Internal admin notes <span className="font-normal text-slate-400">· visible to admins only</span></label><textarea id={`notes-${item._id}`} className={`mt-2 ${controlClass}`} rows={3} maxLength={3000} value={notesDraft[item._id]??item.adminNotes??""} onChange={e=>setNotesDraft(current=>({...current,[item._id]:e.target.value}))} placeholder="Record follow-up attempts, missing details, or why a decision was made…"/><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] text-slate-400">{(notesDraft[item._id]??item.adminNotes??"").length}/3000 characters</span><div className="flex flex-wrap gap-2"><button type="button" className={buttonClass} disabled={busyId===item._id} onClick={()=>updateSubmission(item,{adminNotes:notesDraft[item._id]??item.adminNotes??""},"Internal notes saved.")}>Save notes</button>{item.status==="approved"&&<Link className={primaryClass} href="/admin/businesses">Create/manage listing →</Link>}{item.status==="rejected"&&<button type="button" className={buttonClass} disabled={busyId===item._id} onClick={()=>updateSubmission(item,{status:"pending"},"Request reopened for review.")}>Reopen request</button>}{item.status==="approved"&&<button type="button" className={buttonClass} disabled={busyId===item._id} onClick={()=>updateSubmission(item,{status:"reviewing"},"Request returned to review.")}>Return to review</button>}</div></div></div>
+                        <div className="mt-6 border-t border-slate-200 pt-5"><label className="block text-xs font-bold text-slate-700" htmlFor={`notes-${item._id}`}>Internal admin notes <span className="font-normal text-slate-400">· visible to admins only</span></label><textarea id={`notes-${item._id}`} className={`mt-2 ${controlClass}`} rows={3} maxLength={3000} value={notesDraft[item._id]??item.adminNotes??""} onChange={e=>setNotesDraft(current=>({...current,[item._id]:e.target.value}))} placeholder="Record follow-up attempts, missing details, or why a decision was made…"/><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] text-slate-400">{(notesDraft[item._id]??item.adminNotes??"").length}/3000 characters</span><div className="flex flex-wrap gap-2"><button type="button" className={buttonClass} disabled={busyId===item._id} onClick={()=>updateSubmission(item,{adminNotes:notesDraft[item._id]??item.adminNotes??""},"Internal notes saved.")}>Save notes</button>{item.status==="rejected"&&<button type="button" className={buttonClass} disabled={busyId===item._id} onClick={()=>updateSubmission(item,{status:"pending"},"Request reopened for review.")}>Reopen request</button>}{item.status==="approved"&&<button type="button" className={buttonClass} disabled={busyId===item._id} onClick={()=>updateSubmission(item,{status:"reviewing"},"Request returned to review.")}>Return to review</button>}</div></div>
+                        {item.status==="approved"&&!item.business&&<div className="mt-6 border-t border-slate-200 pt-5"><div><h4 className="text-sm font-bold text-slate-900">Create the public business listing</h4><p className="mt-1 text-xs leading-5 text-slate-500">Approval does not publish automatically. Confirm the category and location, review the description, then publish to make it visible in public search.</p></div><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"><label className="text-xs font-semibold text-slate-700">Category<select className={`mt-1.5 ${controlClass}`} value={listingDrafts[item._id]?.category||""} onChange={e=>updateListingDraft(item._id,{category:e.target.value},item)} required><option value="">Choose active category</option>{categories.filter(option=>option.status==="active").map(option=><option key={option._id} value={option._id}>{option.name}</option>)}</select></label><label className="text-xs font-semibold text-slate-700">Location<select className={`mt-1.5 ${controlClass}`} value={listingDrafts[item._id]?.location||""} onChange={e=>updateListingDraft(item._id,{location:e.target.value},item)} required><option value="">Choose active location</option>{locations.filter(option=>option.status==="active").map(option=><option key={option._id} value={option._id}>{option.name}{option.type?` · ${option.type}`:""}</option>)}</select></label><label className="text-xs font-semibold text-slate-700">Business type<select className={`mt-1.5 ${controlClass}`} value={listingDrafts[item._id]?.businessType||"business"} onChange={e=>updateListingDraft(item._id,{businessType:e.target.value},item)}><option value="business">General business</option><option value="restaurant">Restaurant</option><option value="hotel">Hotel</option><option value="professional_service">Professional service</option><option value="healthcare">Healthcare</option><option value="retail">Retail</option><option value="tourism">Tourism</option><option value="attraction">Attraction</option><option value="guide">Guide</option><option value="event_venue">Event venue</option><option value="other">Other</option></select></label><label className="text-xs font-semibold text-slate-700 sm:col-span-2 xl:col-span-3">Public business description<textarea className={`mt-1.5 ${controlClass}`} rows={4} maxLength={10000} value={listingDrafts[item._id]?.description??item.message??""} onChange={e=>updateListingDraft(item._id,{description:e.target.value},item)} placeholder="Describe services, what makes the business useful, and what visitors should know."/><span className="mt-1 block text-[10px] font-normal text-slate-400">Required to publish. Contact details from the submission will be included.</span></label></div><div className="mt-4 flex flex-wrap gap-2"><button className={primaryClass} type="button" disabled={busyId===item._id||!categories.length||!locations.length} onClick={()=>createListing(item,true)}>{busyId===item._id?"Publishing…":"Create & publish listing ↗"}</button><button className={buttonClass} type="button" disabled={busyId===item._id||!categories.length||!locations.length} onClick={()=>createListing(item,false)}>{busyId===item._id?"Saving…":"Save as draft"}</button><span className="self-center text-[10px] text-slate-400">Publishing makes it eligible for /businesses and its own public profile.</span></div></div>}
+                        {item.business?.slug&&<div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-sm font-bold text-emerald-900">Listing created: {item.business.name}</p><p className="mt-1 text-xs text-emerald-800">Status: {item.business.status}</p>{item.business.status==="published"?<Link className="mt-3 inline-flex text-xs font-bold text-emerald-900 underline" href={`/businesses/${item.business.slug}`}>Open public listing ↗</Link>:<Link className="mt-3 inline-flex text-xs font-bold text-emerald-900 underline" href="/admin/businesses">Open Business Management to publish ↗</Link>}</div>}
+                        </div>
                     </div>}
                 </article>)}</div>}
                 <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"><p className="text-xs text-slate-500">Page {pagination.page||page} of {Math.max(1,pagination.totalPages||0)} <span className="px-1 text-slate-300">·</span> {filteredTotal} requests</p><div className="flex gap-2"><button className={buttonClass} type="button" disabled={loading||page<=1} onClick={()=>setPage(p=>p-1)}>← Previous</button><button className={buttonClass} type="button" disabled={loading||page>=Math.max(1,pagination.totalPages||0)} onClick={()=>setPage(p=>p+1)}>Next →</button></div></div>
