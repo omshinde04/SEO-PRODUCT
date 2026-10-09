@@ -298,7 +298,7 @@ export default function ContentAdminPage({ type }) {
     async function remove(id) {
         const message =
             type === "media"
-                ? "Remove this media record from the library? Confirm that the asset is no longer in use before continuing."
+                ? "Permanently delete this image from Cloudinary and the media library? Deletion is blocked while the image is assigned to content."
                 : "Delete this record from the admin database?";
         if (!window.confirm(message)) return;
 
@@ -311,7 +311,7 @@ export default function ContentAdminPage({ type }) {
                 "/api/admin/content/" + type + "?id=" + encodeURIComponent(id),
                 { method: "DELETE" }
             );
-            setNotice("Record removed.");
+            setNotice(type === "media" ? "Image deleted from Cloudinary and the media library." : "Record removed.");
             await load();
         } catch (removeError) {
             setError(removeError.message || "Could not remove the record.");
