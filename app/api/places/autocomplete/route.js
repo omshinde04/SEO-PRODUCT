@@ -42,7 +42,7 @@ function normalizeFeature(feature) {
       formattedAddress: description, latitude, longitude,
       address: { area, city, district, state, country, postalCode },
       source: "openstreetmap", osmType: clean(properties.osm_type), osmId: properties.osm_id ?? null,
-      searchText: city || area || district || name || description,
+      searchText: name || city || area || district || description,
     },
   };
 }
