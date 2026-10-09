@@ -212,6 +212,7 @@ export default function CategoriesClient() {
             return;
         }
 
+        setBusy(true);
         setBusyId(item._id);
         setError("");
         setNotice("");
@@ -242,6 +243,7 @@ export default function CategoriesClient() {
             setError(statusError.message || "Could not change category status.");
         } finally {
             setBusyId("");
+            setBusy(false);
         }
     }
 
