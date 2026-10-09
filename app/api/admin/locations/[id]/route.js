@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
 import Location from "@/models/Location";
+import { optionalUrlSchema } from "@/lib/business/validation";
 import Business from "@/models/Business";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
@@ -82,7 +83,7 @@ const patchLocationSchema = z
 
         coverImage: z
             .object({
-                url: z.string().trim().max(2048),
+                url: optionalUrlSchema,
                 publicId: z.string().trim().max(300),
                 alt: z.string().trim().max(200),
             })
