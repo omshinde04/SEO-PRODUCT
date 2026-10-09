@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import { randomUUID } from "node:crypto";
 
-import LoginAttempt from "../models/LoginAttempt.js";
+import RateLimitEntry from "../models/RateLimitEntry.js";
 import {
     clearLoginIdentityRateLimits,
     enforceLoginRateLimit,
@@ -28,7 +28,7 @@ async function connectTestDatabase() {
 }
 
 async function cleanupKeys(keys) {
-    await LoginAttempt.deleteMany({ key: { $in: keys } }).exec();
+    await RateLimitEntry.deleteMany({ key: { $in: keys } }).exec();
 }
 
 test("login rate limits persist across calls and successful login can clear identity buckets", {
