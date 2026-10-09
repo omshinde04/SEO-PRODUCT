@@ -45,6 +45,7 @@ SEO-PRODUCT is a location-focused discovery platform foundation for businesses, 
    | `CLOUDINARY_API_KEY` | Cloudinary API key |
    | `CLOUDINARY_API_SECRET` | Server-only Cloudinary API secret |
    | `CLOUDINARY_UPLOAD_PRESET` | Signed upload preset configured in Cloudinary |
+   | `GOOGLE_MAPS_API_KEY` | Server-only Google Places API (New) key for public location search and admin address/coordinate lookup |
 
    Generate strong secrets instead of using the example placeholders. Never expose `JWT_SECRET`, `AUTH_RATE_LIMIT_SECRET`, or `CLOUDINARY_API_SECRET` to client-side code, and never commit `.env.local`.
 
@@ -75,6 +76,10 @@ SEO-PRODUCT is a location-focused discovery platform foundation for businesses, 
 - **Global SEO settings and templates:** editable defaults and entity-specific template records.
 
 The admin API requires an authenticated admin session. Admin pages and APIs must not be treated as public endpoints.
+
+## Google Places location search
+
+The public homepage, business directory, and admin business address form use a server-side proxy to Google Places API (New). Set `GOOGLE_MAPS_API_KEY` in `.env.local` and your deployment environment; do not use a `NEXT_PUBLIC_` prefix for this key. In Google Cloud, enable Places API (New), restrict the key to the required API and the server-side environment where supported, set per-API quotas and budget alerts, and monitor usage. Eligible India-based accounts may receive monthly free usage thresholds, but Google Maps Platform is usage-billed beyond applicable thresholds; it is not an unlimited free API. The location search also retains manual address editing so listing management can continue if Google Places is unavailable.
 
 ## Security notes
 
