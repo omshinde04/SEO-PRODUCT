@@ -37,7 +37,7 @@ export async function POST(request) {
     try {
         const contentType = request.headers.get("content-type") || "";
 
-        if (!contentType.toLowerCase().includes("application/json")) {
+        if (contentType.split(";")[0].trim().toLowerCase() !== "application/json") {
             return jsonError("Content-Type must be application/json.", 415);
         }
 
