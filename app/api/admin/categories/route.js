@@ -158,8 +158,8 @@ export async function POST(request) {
                 return apiError("Parent category ID is invalid.", 400);
             }
 
-            const parent = await Category.findById(data.parent)
-                .select("_id status")
+            let parent = await Category.findById(data.parent)
+                .select("_id status parent")
                 .lean()
                 .exec();
 
@@ -167,8 +167,27 @@ export async function POST(request) {
                 return apiError("Parent category was not found.", 404);
             }
 
-            if (parent.status !== "active") {
-                return apiError("Parent category must be active.", 409);
+            const visited = new Set();
+            while (parent) {
+                const parentId = String(parent._id);
+                if (visited.has(parentId)) {
+                    return apiError("The existing category hierarchy contains a cycle.", 409);
+                }
+                visited.add(parentId);
+
+                if (parent.status !== "active") {
+                    return apiError("All parent categories must be active.", 409);
+                }
+
+                if (!parent.parent) break;
+                parent = await Category.findById(parent.parent)
+                    .select("_id status parent")
+                    .lean()
+                    .exec();
+
+                if (!parent) {
+                    return apiError("The parent category hierarchy is invalid.", 409);
+                }
             }
         }
 

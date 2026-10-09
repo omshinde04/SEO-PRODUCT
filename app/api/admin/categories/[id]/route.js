@@ -91,12 +91,15 @@ async function validateParent(parentId, categoryId) {
         if (!current.parent) break;
 
         current = await Category.findById(current.parent)
-            .select("_id parent")
+            .select("_id status parent")
             .lean()
             .exec();
 
         if (!current) {
             return apiError("The parent category hierarchy is invalid.", 409);
+        }
+        if (current.status !== "active") {
+            return apiError("All parent categories must be active.", 409);
         }
     }
 
@@ -216,8 +219,11 @@ export async function PATCH(request, { params }) {
             }
         }
 
-        if (updates.parent !== undefined) {
-            const parentError = await validateParent(updates.parent, id);
+        if (updates.parent !== undefined || updates.status === "active") {
+            const parentId = updates.parent !== undefined
+                ? updates.parent
+                : category.parent ? String(category.parent) : null;
+            const parentError = await validateParent(parentId, id);
             if (parentError) return parentError;
         }
 

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
 import Location from "@/models/Location";
+import { optionalUrlSchema } from "@/lib/business/validation";
 import Business from "@/models/Business";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
@@ -82,7 +83,7 @@ const patchLocationSchema = z
 
         coverImage: z
             .object({
-                url: z.string().trim().max(2048),
+                url: optionalUrlSchema,
                 publicId: z.string().trim().max(300),
                 alt: z.string().trim().max(200),
             })
@@ -213,7 +214,7 @@ async function validateParent(parentId, childType, locationId) {
         }
 
         current = await Location.findById(current.parent)
-            .select("_id parent")
+            .select("_id type status parent")
             .lean()
             .exec();
 
@@ -222,6 +223,9 @@ async function validateParent(parentId, childType, locationId) {
                 "The parent location hierarchy is invalid.",
                 409
             );
+        }
+        if (current.status !== "active") {
+            return apiError("All parent locations must be active.", 409);
         }
     }
 
@@ -331,7 +335,8 @@ export async function PATCH(request, { params }) {
          */
         if (
             updates.parent !== undefined ||
-            updates.type !== undefined
+            updates.type !== undefined ||
+            updates.status === "active"
         ) {
             const parentError = await validateParent(
                 nextParent,

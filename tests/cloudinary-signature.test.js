@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { createCloudinarySignature, createSignedImageUpload, getCloudinaryConfig, UPLOAD_PURPOSES } from "../lib/cloudinary/upload-signature.js";
+import { createCloudinarySignature, createSignedImageUpload, deleteCloudinaryImage, getCloudinaryConfig, UPLOAD_PURPOSES } from "../lib/cloudinary/upload-signature.js";
 
 test("Cloudinary signatures sort parameters and exclude file, api_key and signature", () => {
     const params = { timestamp: 123, api_key: "12345", folder: "seo-product/businesses/logos", signature: "ignored", file: "ignored", public_id: "asset-id", upload_preset: "signed_preset" };
@@ -26,4 +26,61 @@ test("signed upload uses a fixed purpose folder and generated ID", () => {
 
 test("unsupported upload purposes are rejected", () => {
     assert.throws(() => createSignedImageUpload({ purpose: "../../admin", config: {} }), /Unsupported image upload purpose/);
+});
+
+test("Cloudinary deletion signs the server-side public ID and timestamp", async () => {
+    const config = {
+        cloudName: "demo-cloud",
+        apiKey: "123456789012345",
+        apiSecret: "a-secret-that-is-long-enough",
+        uploadPreset: "seo_product_signed",
+    };
+    let capturedUrl;
+    let capturedOptions;
+
+    const result = await deleteCloudinaryImage({
+        publicId: "seo-product/places/covers/asset-id",
+        config,
+        now: 1_800_000_000_000,
+        fetchImpl: async (url, options) => {
+            capturedUrl = url;
+            capturedOptions = options;
+            return { ok: true, json: async () => ({ result: "ok" }) };
+        },
+    });
+
+    const body = new URLSearchParams(capturedOptions.body);
+    assert.equal(result, "ok");
+    assert.equal(capturedUrl, "https://api.cloudinary.com/v1_1/demo-cloud/image/destroy");
+    assert.equal(capturedOptions.method, "POST");
+    assert.equal(body.get("public_id"), "seo-product/places/covers/asset-id");
+    assert.equal(body.get("timestamp"), "1800000000");
+    assert.equal(body.get("api_key"), config.apiKey);
+    assert.equal(body.get("invalidate"), "true");
+    assert.equal(
+        body.get("signature"),
+        createCloudinarySignature(
+            {
+                public_id: body.get("public_id"),
+                timestamp: Number(body.get("timestamp")),
+                invalidate: true,
+            },
+            config.apiSecret
+        )
+    );
+});
+
+test("Cloudinary deletion rejects an unconfirmed remote deletion", async () => {
+    await assert.rejects(
+        () => deleteCloudinaryImage({
+            publicId: "seo-product/places/covers/asset-id",
+            config: {
+                cloudName: "demo-cloud",
+                apiKey: "123456789012345",
+                apiSecret: "a-secret-that-is-long-enough",
+            },
+            fetchImpl: async () => ({ ok: true, json: async () => ({ result: "error" }) }),
+        }),
+        /did not confirm image deletion/
+    );
 });

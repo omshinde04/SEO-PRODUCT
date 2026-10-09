@@ -12,10 +12,24 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -28,5 +42,49 @@ jobs:
         run: npm ci
       - name: Run automated tests
         run: npm test
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017/seo_product_test
+          AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-secret-000000000000000000000000
       - name: Run ESLint
         run: npm run lint
+      - name: Verify production build
+        run: npm run build
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/seo_product_ci
+          JWT_SECRET: ci-only-secret-do-not-use-in-production-000000000000000000000000
+          AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-secret-000000000000000000000000
+          NEXT_PUBLIC_SITE_URL: https://example.invalid
+      - name: Seed isolated CI administrator
+        run: node scripts/ci/seed-admin.mjs
+        env:
+          CI: "true"
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017/seo_product_test
+          CI_ADMIN_EMAIL: ci-admin@example.test
+          CI_ADMIN_PASSWORD: CI-Only-Admin-Password-2026!
+      - name: Start production server for API smoke tests
+        run: |
+          ./node_modules/.bin/next start --hostname 127.0.0.1 > /tmp/seo-product-next.log 2>&1 &
+          echo $! > /tmp/seo-product-next.pid
+        env:
+          PORT: 3000
+          MONGODB_URI: mongodb://127.0.0.1:27017/seo_product_test
+          JWT_SECRET: ci-only-secret-do-not-use-in-production-000000000000000000000000
+          AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-secret-000000000000000000000000
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+          SITE_URL: http://127.0.0.1:3000
+      - name: Smoke test admin API workflows
+        run: node scripts/ci/admin-api-smoke.mjs
+        env:
+          CI: "true"
+          ADMIN_BASE_URL: http://127.0.0.1:3000
+          CI_ADMIN_EMAIL: ci-admin@example.test
+          CI_ADMIN_PASSWORD: CI-Only-Admin-Password-2026!
+      - name: Print production server logs on failure
+        if: failure()
+        run: cat /tmp/seo-product-next.log || true
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/seo-product-next.pid ]; then
+            kill "$(cat /tmp/seo-product-next.pid)" 2>/dev/null || true
+          fi

@@ -5,7 +5,7 @@
 1. An authenticated admin requests `POST /api/admin/uploads/signature` with a supported `purpose`.
 2. The server verifies the admin session and same-origin `Origin` header, validates the request, generates the asset ID/folder, and signs the upload parameters.
 3. The browser uploads image bytes directly to Cloudinary using the returned upload parameters.
-4. After upload success, the browser stores Cloudinary `secure_url` and `public_id` in the corresponding business/location record through the existing admin API.
+4. After upload success, the browser stores Cloudinary `secure_url` and `public_id` in the media library. Editors can then select a library asset and assign its URL/public ID to content.
 
 The API secret is server-only. This endpoint does not accept arbitrary public IDs/folders or proxy file bytes through Next.js.
 
@@ -38,4 +38,15 @@ Send `Content-Type: application/json` and a same-origin `Origin` header. Request
 
 Allowed purposes: `business-logo`, `business-cover`, `business-gallery`, `location-cover`, `place-cover`, `place-gallery`.
 
-Do not persist image references until Cloudinary confirms upload success. Asset deletion is intentionally not included yet; implement it only after checking every database reference to prevent deleting shared assets.
+Do not persist image references until Cloudinary confirms upload success.
+
+## Media deletion
+
+The admin media delete action:
+1. Loads the media record from MongoDB and uses its server-stored `publicId`; it never accepts a public ID from the browser for deletion.
+2. Checks business logo, cover image and gallery references, location cover-image references, and content cover-image references.
+3. Returns `409 Conflict` while any reference exists.
+4. Sends a signed request to Cloudinary's image destroy endpoint.
+5. Removes the MongoDB media record only after Cloudinary reports `ok` or `not found`.
+
+If Cloudinary credentials are missing or the remote deletion is not confirmed, the media record is retained and the API returns an error. Configure the Cloudinary credentials on the server before enabling this workflow in production.

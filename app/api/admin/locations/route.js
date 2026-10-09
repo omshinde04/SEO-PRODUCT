@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
 import Location from "@/models/Location";
+import { optionalUrlSchema } from "@/lib/business/validation";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
@@ -75,7 +76,7 @@ const locationInputSchema = z
 
         coverImage: z
             .object({
-                url: z.string().trim().max(2048).optional().default(""),
+                url: optionalUrlSchema.optional().default(""),
                 publicId: z.string().trim().max(300).optional().default(""),
                 alt: z.string().trim().max(200).optional().default(""),
             })
@@ -146,8 +147,8 @@ async function validateParent(parentId, childType) {
         return apiError("Parent location ID is invalid.", 400);
     }
 
-    const parent = await Location.findById(parentId)
-        .select("_id type status")
+    let parent = await Location.findById(parentId)
+        .select("_id type status parent")
         .lean()
         .exec();
 
@@ -166,6 +167,33 @@ async function validateParent(parentId, childType) {
             `${parent.type} cannot be the parent of a ${childType} location.`,
             400
         );
+    }
+
+    const visited = new Set();
+    let current = parent;
+    while (current) {
+        const currentId = String(current._id);
+        if (visited.has(currentId)) {
+            return apiError("The existing location hierarchy contains a cycle.", 409);
+        }
+        visited.add(currentId);
+
+        if (current.status !== "active") {
+            return apiError("All parent locations must be active.", 409);
+        }
+        if (!current.parent) break;
+
+        const ancestor = await Location.findById(current.parent)
+            .select("_id type status parent")
+            .lean()
+            .exec();
+        if (!ancestor) {
+            return apiError("The parent location hierarchy is invalid.", 409);
+        }
+        if (!allowedParentTypes[current.type]?.includes(ancestor.type)) {
+            return apiError("The existing location hierarchy has an invalid parent type.", 409);
+        }
+        current = ancestor;
     }
 
     return null;
