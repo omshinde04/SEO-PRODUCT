@@ -325,10 +325,8 @@ export async function POST(request) {
         const coordinateError = validateCoordinates(data.coordinates);
         if (coordinateError) return coordinateError;
 
-        if (
-            new Set(data.address.postalCodes).size !==
-            data.address.postalCodes.length
-        ) {
+        const postalCodes = data.address?.postalCodes || [];
+        if (new Set(postalCodes).size !== postalCodes.length) {
             return apiError("Postal codes must not contain duplicates.", 400);
         }
 
