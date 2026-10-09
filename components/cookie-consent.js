@@ -17,9 +17,11 @@ export default function CookieConsent() {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate consent from browser storage after hydration to avoid an SSR mismatch.\n        setPreferences({ ...DEFAULTS, ...parsed, necessary: true });
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate consent from browser storage after hydration to avoid an SSR mismatch.
+        setPreferences({ ...DEFAULTS, ...parsed, necessary: true });
       } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Show the consent UI after checking browser storage.\n        // eslint-disable-next-line react-hooks/set-state-in-effect -- Show the consent UI when browser storage cannot be read.\n      setVisible(true);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Show the consent UI when browser storage cannot be read.
+        setVisible(true);
       }
     } catch {
       setVisible(true);
