@@ -189,6 +189,33 @@ export async function PATCH(request, { params }) {
             return apiError("Category not found.", 404);
         }
 
+        // PATCH can deactivate a category too, so enforce the same data
+        // integrity rules as DELETE before changing active -> inactive.
+        if (updates.status === "inactive" && category.status === "active") {
+            const activeChildren = await Category.exists({
+                parent: category._id,
+                status: "active",
+            });
+
+            if (activeChildren) {
+                return apiError(
+                    "Deactivate or reassign active child categories first.",
+                    409
+                );
+            }
+
+            const linkedBusiness = await Business.exists({
+                category: category._id,
+            });
+
+            if (linkedBusiness) {
+                return apiError(
+                    "This category is referenced by businesses. Reassign those businesses before deactivating it.",
+                    409
+                );
+            }
+        }
+
         if (updates.parent !== undefined) {
             const parentError = await validateParent(updates.parent, id);
             if (parentError) return parentError;
