@@ -146,7 +146,7 @@ export default function ContentAdminPage({ type }) {
             setTotal(Number(data.total ?? data.pagination?.total ?? data.items?.length ?? 0));
 
             if (type === "seo" && data.items?.[0]) {
-                setSeo({ ...blankSeo, ...data.items[0] });
+                setSeo(Object.fromEntries(Object.keys(blankSeo).map((key) => [key, data.items[0][key] ?? blankSeo[key]])));
             }
 
             if (isContent) {
