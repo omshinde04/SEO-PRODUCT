@@ -1,9 +1,5 @@
-import mongoose from "mongoose";
-
 import { connectDB } from "@/lib/db";
 import Business from "@/models/Business";
-import Category from "@/models/Category";
-import Location from "@/models/Location";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
 export const runtime = "nodejs";
