@@ -1,4 +1,5 @@
 import "./globals.css";
+import CookieConsent from "@/components/cookie-consent";
 import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
 
 export async function generateMetadata() {
@@ -88,6 +89,7 @@ export default async function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
         />
         {children}
+        <CookieConsent />
       </body>
     </html>
   );
