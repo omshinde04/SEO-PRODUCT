@@ -13,16 +13,16 @@ const RECENT_BUSINESS_LIMIT = 5;
 /**
  * GET /api/admin/dashboard/stats
  *
- * Admin-only overview counts and a short list of recently created businesses.
- * Counts include every record regardless of publication visibility because
- * this endpoint is for administrative reporting, not public discovery.
+ * Admin-only overview counts and recently created businesses.
+ * Business totals include all publication states; pending verification is
+ * counted independently of publication state.
  */
 export async function GET() {
-    const auth = await requireAdmin();
-
-    if (auth.response) return auth.response;
-
     try {
+        const auth = await requireAdmin();
+
+        if (auth.response) return auth.response;
+
         await connectDB();
 
         const [
@@ -51,7 +51,7 @@ export async function GET() {
             Location.countDocuments({ status: "active" }),
             Location.countDocuments({ status: "inactive" }),
             Business.find({})
-                .select("name slug status businessType verificationStatus logo createdAt")
+                .select("name slug status businessType verificationStatus logo createdAt category location")
                 .populate("category", "name slug")
                 .populate("location", "name slug type")
                 .sort({ createdAt: -1, _id: -1 })
