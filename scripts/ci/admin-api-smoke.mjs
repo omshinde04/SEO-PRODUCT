@@ -306,17 +306,22 @@ const placeSearch = await request(
 expectStatus(placeSearch, 200, "Search content");
 assert.ok(placeSearch.data.items?.some((item) => item._id === placeId));
 
-expectStatus(await request("/api/admin/content/places", {
+const publishedPlace = await request("/api/admin/content/places", {
     method: "PATCH",
     cookie,
     body: { id: placeId, data: { status: "published" } },
-}), 200, "Publish place");
+});
+expectStatus(publishedPlace, 200, "Publish place");
+assert.equal(publishedPlace.data.item?.summary, "A short summary for the CI content workflow.");
+assert.equal(publishedPlace.data.item?.body, "This record is created only in the isolated CI database.");
 
-expectStatus(await request("/api/admin/content/places", {
+const draftPlace = await request("/api/admin/content/places", {
     method: "PATCH",
     cookie,
     body: { id: placeId, data: { status: "draft" } },
-}), 200, "Return place to draft");
+});
+expectStatus(draftPlace, 200, "Return place to draft");
+assert.equal(draftPlace.data.item?.summary, "A short summary for the CI content workflow.");
 
 const invalidEvent = await request("/api/admin/content/events", {
     method: "POST",
@@ -350,7 +355,7 @@ const event = await request("/api/admin/content/events", {
         slug: `ci-event-${suffix}`,
         summary: "A valid event summary.",
         body: "A valid event body for the smoke test.",
-        status: "published",
+        status: "draft",
         location: countryId,
         coverImage: { url: "", publicId: "", alt: "" },
         seo: { title: "", description: "", canonicalUrl: "", noIndex: false },
@@ -365,6 +370,14 @@ const event = await request("/api/admin/content/events", {
 expectStatus(event, 201, "Create valid published event");
 const eventId = event.data.item?._id;
 assert.ok(eventId, "Event should have an ID");
+
+const publishedEvent = await request("/api/admin/content/events", {
+    method: "PATCH",
+    cookie,
+    body: { id: eventId, data: { status: "published" } },
+});
+expectStatus(publishedEvent, 200, "Publish event with saved date and venue");
+assert.equal(publishedEvent.data.item?.status, "published");
 
 const seoSettings = {
     siteName: "SEO-PRODUCT CI",
