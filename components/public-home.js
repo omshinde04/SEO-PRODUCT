@@ -377,122 +377,53 @@ export default function PublicHome({ initialData = null }) {
 
       <PublicNavbar activePath="/" />
 
-      {/* Hero Section */}
-      <section className="hero" id="discover">
-        <div className="hero-grid-pattern" aria-hidden="true" />
-
-        <div className="hero-copy">
-          <div className="hero-kicker">
-            <span className="kicker-icon">
-              <HomeIcon name="spark" size={15} />
-            </span>
-            <span>THE LOCAL WAY TO FIND YOUR WAY</span>
-            <span className="kicker-line" />
+      {/* Clean, Decent SaaS Hero Section */}
+      <section className="home-hero-clean" id="discover">
+        <div className="home-hero-inner">
+          <div className="home-hero-badge">
+            <span className="badge-glow-dot" />
+            <span>LOCAL BUSINESS DISCOVERY</span>
+            <span className="badge-sep">·</span>
+            <span>NASHIK DISTRICT</span>
           </div>
 
-          <h1>
-            Find your kind
+          <h1 className="home-hero-heading">
+            Good local places.
             <br />
-            of <span className="hero-highlight">wonder.</span>
-            <span className="hero-period">✳</span>
+            <em>Closer than you think.</em>
           </h1>
 
-          <p className="hero-description">
-            The little-known gems, trusted local businesses, and places worth the trip across Ghoti, Igatpuri, and Nashik. All the good stuff, closer than you think.
+          <p className="home-hero-subtext">
+            Discover verified dining, stays, healthcare, shops, and essential everyday services across Ghoti, Igatpuri, and Nashik.
           </p>
 
-          <div className="hero-proof">
-            <div className="proof-avatars">
-              <span>N</span>
-              <span>G</span>
-              <span>I</span>
-              <span>+</span>
-            </div>
-            <span>
-              Built around <strong>verified local places</strong>
-            </span>
-            <span className="proof-divider" />
-            <span>
-              <HomeIcon name="shield" size={15} /> Community-first discovery
-            </span>
-          </div>
-        </div>
-
-        {/* SaaS Visual Showcase Card (Replaced flat box drawing) */}
-        <div className="hero-showcase-panel" aria-label="Interactive local preview showcase">
-          <div className="showcase-card-main">
-            <div className="showcase-badge-row">
-              <span className="showcase-live-pill">
-                <span className="pulse-dot" /> Live in Nashik District
+          {/* Integrated Clean SaaS Search Bar */}
+          <form className="home-clean-search-bar" onSubmit={handleSearch} role="search">
+            <div className="clean-search-field field-what">
+              <span className="clean-field-icon" aria-hidden="true">
+                <HomeIcon name="search" size={18} />
               </span>
-              <span className="showcase-verified-tag">
-                <HomeIcon name="shield" size={13} /> Verified Directory
-              </span>
-            </div>
-
-            <div className="showcase-visual-box">
-              <div className="showcase-visual-overlay" />
-              <div className="showcase-stat-chip chip-top-left">
-                <span className="stat-num">⭐ 4.9</span>
-                <span className="stat-label">Local Rating</span>
-              </div>
-              <div className="showcase-stat-chip chip-bottom-right">
-                <span className="stat-num">📍 Ghoti & Igatpuri</span>
-                <span className="stat-label">Fast Discovery</span>
-              </div>
-              <div className="showcase-hero-center">
-                <span className="showcase-center-icon">
-                  <HomeIcon name="spark" size={28} />
-                </span>
-                <strong>Authentic Local Finds</strong>
-                <small>Food · Stays · Healthcare · Retail</small>
-              </div>
-            </div>
-
-            <div className="showcase-features-bar">
-              <div className="feature-item">
-                <HomeIcon name="check" size={14} />
-                <span>Direct Contact</span>
-              </div>
-              <div className="feature-item">
-                <HomeIcon name="check" size={14} />
-                <span>Zero Commission</span>
-              </div>
-              <div className="feature-item">
-                <HomeIcon name="check" size={14} />
-                <span>100% Free to Search</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Unified Search Panel */}
-        <div className="search-panel-wrap">
-          <form className="search-panel" onSubmit={handleSearch}>
-            <label className="search-field search-keyword">
-              <span className="search-icon">
-                <HomeIcon name="search" size={20} />
-              </span>
-              <span className="field-content">
-                <span className="field-label">WHAT ARE YOU LOOKING FOR?</span>
+              <div className="clean-field-input-wrap">
+                <label htmlFor="home-clean-query">WHAT ARE YOU LOOKING FOR?</label>
                 <input
+                  id="home-clean-query"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Coffee, stays, a great mechanic…"
-                  aria-label="Search businesses and services"
+                  autoComplete="off"
                 />
-              </span>
-            </label>
+              </div>
+            </div>
 
-            <span className="search-divider" />
+            <div className="clean-search-divider" aria-hidden="true" />
 
-            <div className="search-field search-location">
-              <span className="search-icon">
-                <HomeIcon name="pin" size={20} />
+            <div className="clean-search-field field-where">
+              <span className="clean-field-icon" aria-hidden="true">
+                <HomeIcon name="pin" size={18} />
               </span>
-              <div className="field-content">
+              <div className="clean-field-input-wrap">
                 <OpenStreetMapPlaceAutocomplete
-                  inputId="home-location-search"
+                  inputId="home-clean-location"
                   label="AROUND WHERE?"
                   value={location}
                   onChange={(value) => {
@@ -520,18 +451,18 @@ export default function PublicHome({ initialData = null }) {
               </div>
             </div>
 
-            <span className="search-divider" />
+            <div className="clean-search-divider" aria-hidden="true" />
 
-            <label className="search-field search-category">
-              <span className="search-icon">
-                <HomeIcon name="compass" size={20} />
+            <div className="clean-search-field field-cat">
+              <span className="clean-field-icon" aria-hidden="true">
+                <HomeIcon name="compass" size={18} />
               </span>
-              <span className="field-content">
-                <span className="field-label">CATEGORY</span>
+              <div className="clean-field-input-wrap">
+                <label htmlFor="home-clean-category">CATEGORY</label>
                 <select
+                  id="home-clean-category"
                   value={businessType}
                   onChange={(event) => setBusinessType(event.target.value)}
-                  aria-label="Filter by business category"
                 >
                   {TYPES.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -539,19 +470,21 @@ export default function PublicHome({ initialData = null }) {
                     </option>
                   ))}
                 </select>
-              </span>
-            </label>
+              </div>
+            </div>
 
-            <button className="search-submit" type="submit">
-              <HomeIcon name="search" size={18} />
+            <button className="clean-search-submit" type="submit" aria-label="Search places">
+              <HomeIcon name="search" size={16} />
               <span>Find it</span>
             </button>
           </form>
 
-          <div className="popular-searches">
-            <span>POPULAR SEARCHES:</span>
+          {/* Quick Filter Pill Tags */}
+          <div className="home-quick-tags">
+            <span className="quick-tags-label">POPULAR:</span>
             <button
               type="button"
+              className="quick-tag-chip"
               onClick={() => {
                 setQuery("coffee");
                 const next = {
@@ -563,11 +496,11 @@ export default function PublicHome({ initialData = null }) {
                 loadData(next);
               }}
             >
-              Coffee spots
+              ☕ Chai & Cafes
             </button>
-            <i>·</i>
             <button
               type="button"
+              className="quick-tag-chip"
               onClick={() => {
                 setBusinessType("hotel");
                 const next = {
@@ -579,11 +512,11 @@ export default function PublicHome({ initialData = null }) {
                 loadData(next);
               }}
             >
-              Weekend stays
+              🏨 Weekend Stays
             </button>
-            <i>·</i>
             <button
               type="button"
+              className="quick-tag-chip"
               onClick={() => {
                 setBusinessType("healthcare");
                 const next = {
@@ -595,8 +528,33 @@ export default function PublicHome({ initialData = null }) {
                 loadData(next);
               }}
             >
-              Health & wellness
+              ⚕️ Health & Care
             </button>
+            <button
+              type="button"
+              className="quick-tag-chip"
+              onClick={() => {
+                setBusinessType("restaurant");
+                const next = {
+                  q: query,
+                  location: selectedPlace?.searchText || location.trim(),
+                  businessType: "restaurant",
+                };
+                setSubmitted(next);
+                loadData(next);
+              }}
+            >
+              🍽️ Local Dining
+            </button>
+          </div>
+
+          {/* Clean Subtle Proof Strip */}
+          <div className="home-hero-proof-strip">
+            <span>✓ Verified contact details</span>
+            <span className="proof-dot">·</span>
+            <span>✓ Direct WhatsApp & phone</span>
+            <span className="proof-dot">·</span>
+            <span>✓ 100% free community discovery</span>
           </div>
         </div>
       </section>
