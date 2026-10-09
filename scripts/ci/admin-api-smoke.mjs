@@ -111,6 +111,22 @@ const session = await request("/api/auth/me", { cookie });
 expectStatus(session, 200, "Authenticated session check");
 assert.equal(session.data.user?.role, "admin");
 
+
+for (const [pagePath, heading] of [
+    ["/admin/businesses", "Businesses"],
+    ["/admin/categories", "Categories"],
+    ["/admin/locations", "Locations"],
+    ["/admin/seo", "Global SEO settings"],
+]) {
+    const pageResponse = await fetch(new URL(pagePath, baseUrl), {
+        headers: { Cookie: cookie },
+        cache: "no-store",
+    });
+    assert.equal(pageResponse.status, 200, `${pagePath} should render for an authenticated admin`);
+    const html = await pageResponse.text();
+    assert.ok(html.includes(heading), `${pagePath} should include the ${heading} heading`);
+}
+
 const categoryParentSlug = `ci-category-${suffix}`;
 const categoryChildSlug = `ci-subcategory-${suffix}`;
 
