@@ -54,6 +54,53 @@ function imageValue(value) {
     return value ? { ...blankImage, ...value } : { ...blankImage };
 }
 
+const DAYS = [
+    ["monday", "Monday"],
+    ["tuesday", "Tuesday"],
+    ["wednesday", "Wednesday"],
+    ["thursday", "Thursday"],
+    ["friday", "Friday"],
+    ["saturday", "Saturday"],
+    ["sunday", "Sunday"],
+];
+
+function weeklyHoursToText(weekly = {}) {
+    return Object.fromEntries(
+        DAYS.map(([day]) => [
+            day,
+            (weekly[day] || [])
+                .map((period) => `${period.open}-${period.close}`)
+                .join(", "),
+        ])
+    );
+}
+
+function parseWeeklyHours(textByDay) {
+    const weekly = {};
+    for (const [day] of DAYS) {
+        const value = String(textByDay?.[day] || "").trim();
+        if (!value) {
+            weekly[day] = [];
+            continue;
+        }
+        weekly[day] = value.split(",").map((range) => {
+            const [open, close, ...extra] = range.trim().split("-").map((part) => part.trim());
+            if (!open || !close || extra.length) {
+                throw new Error(`Enter opening hours for ${day} as HH:mm-HH:mm. Separate multiple periods with commas.`);
+            }
+            return { open, close };
+        });
+    }
+    return weekly;
+}
+
+function linesToArray(value) {
+    return String(value || "")
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
 function buildInitialForm(business) {
     return {
         name: business?.name || "",
@@ -66,6 +113,7 @@ function buildInitialForm(business) {
         location: business?.location?._id || business?.location || "",
         status: business?.status || "draft",
         verificationStatus: business?.verificationStatus || "unverified",
+        isFeatured: Boolean(business?.isFeatured),
         contact: {
             phone: "",
             alternatePhone: "",
@@ -89,6 +137,20 @@ function buildInitialForm(business) {
         },
         logo: imageValue(business?.logo),
         coverImage: imageValue(business?.coverImage),
+        images: (business?.images || []).map(imageValue),
+        socialLinks: {
+            instagram: "",
+            facebook: "",
+            youtube: "",
+            linkedin: "",
+            x: "",
+            tiktok: "",
+            ...(business?.socialLinks || {}),
+        },
+        openingHoursText: weeklyHoursToText(business?.openingHours?.weekly),
+        openingHoursNotes: business?.openingHours?.notes || "",
+        paymentMethodsText: (business?.paymentMethods || []).join("\n"),
+        languagesText: (business?.languages || []).join("\n"),
         seo: {
             title: "",
             description: "",
@@ -118,6 +180,7 @@ function toPayload(form) {
         location: form.location,
         status: form.status,
         verificationStatus: form.verificationStatus,
+        isFeatured: Boolean(form.isFeatured),
         priceRange: form.priceRange,
         contact: {
             phone: form.contact.phone.trim(),
@@ -127,12 +190,26 @@ function toPayload(form) {
             website: form.contact.website.trim(),
             preferredMethod: form.contact.preferredMethod,
         },
+        socialLinks: Object.fromEntries(
+            Object.entries(form.socialLinks).map(([key, value]) => [
+                key,
+                typeof value === "string" ? value.trim() : value,
+            ])
+        ),
         address: Object.fromEntries(
             Object.entries(form.address).map(([key, value]) => [
                 key,
                 typeof value === "string" ? value.trim() : value,
             ])
         ),
+        openingHours: {
+            timezone: "Asia/Kolkata",
+            notes: form.openingHoursNotes.trim(),
+            weekly: parseWeeklyHours(form.openingHoursText),
+        },
+        paymentMethods: linesToArray(form.paymentMethodsText),
+        languages: linesToArray(form.languagesText),
+        images: form.images,
         services: form.servicesText
             .split("\n")
             .map((value) => value.trim())
@@ -329,7 +406,11 @@ export default function BusinessForm({ business, onClose, onSaved }) {
             };
 
             if (purpose === "business-logo") setValue("logo", image);
-            else setValue("coverImage", image);
+            else if (purpose === "business-cover") setValue("coverImage", image);
+            else setForm((current) => ({
+                ...current,
+                images: [...current.images, image].slice(0, 20),
+            }));
 
             setError("");
         } catch (err) {
@@ -345,7 +426,14 @@ export default function BusinessForm({ business, onClose, onSaved }) {
         setFieldErrors({});
 
         const publishIntent = event.nativeEvent?.submitter?.value === "publish";
-        const payload = toPayload(form);
+        let payload;
+
+        try {
+            payload = toPayload(form);
+        } catch (payloadError) {
+            setError(payloadError.message || "Check the business form values.");
+            return;
+        }
 
         // The dedicated Publish action must publish even when the status
         // dropdown is still set to Draft.
@@ -525,6 +613,14 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                                 </select>
                             </Field>
 
+                            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4">
+                                <input type="checkbox" checked={form.isFeatured} onChange={(event) => setValue("isFeatured", event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                <span>
+                                    <span className="block text-xs font-semibold text-slate-800">Featured listing</span>
+                                    <span className="mt-1 block text-[11px] leading-5 text-slate-500">Mark this business as featured for supported directory placements.</span>
+                                </span>
+                            </label>
+
                             <div className="sm:col-span-2">
                                 <Field label="Description *" hint="Required before a business can be published.">
                                     <textarea required={form.status === "published"} maxLength={10000} rows={5} className={`${inputClass} py-3`} value={form.description} onChange={(event) => setValue("description", event.target.value)} placeholder="Describe the business, services, and what visitors should know." />
@@ -594,6 +690,34 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                             </div>
                         </Section>
 
+                        <Section title="Social links" description="Optional public profiles. Use full HTTP or HTTPS URLs.">
+                            {[
+                                ["instagram", "Instagram"],
+                                ["facebook", "Facebook"],
+                                ["youtube", "YouTube"],
+                                ["linkedin", "LinkedIn"],
+                                ["x", "X"],
+                                ["tiktok", "TikTok"],
+                            ].map(([key, label]) => (
+                                <Field key={key} label={label}>
+                                    <input type="url" maxLength={2048} className={inputClass} value={form.socialLinks[key] || ""} onChange={(event) => setNested("socialLinks", key, event.target.value)} placeholder="https://…" />
+                                </Field>
+                            ))}
+                        </Section>
+
+                        <Section title="Opening hours" description="Use 24-hour HH:mm times. Example: 09:00-13:00, 17:00-21:00. Leave a day empty when closed.">
+                            {DAYS.map(([day, label]) => (
+                                <Field key={day} label={label} hint="Multiple periods can be separated by commas.">
+                                    <input maxLength={300} className={inputClass} value={form.openingHoursText[day] || ""} onChange={(event) => setNested("openingHoursText", day, event.target.value)} placeholder="09:00-18:00" />
+                                </Field>
+                            ))}
+                            <div className="sm:col-span-2">
+                                <Field label="Opening-hours notes">
+                                    <textarea rows={2} maxLength={500} className={`${inputClass} py-3`} value={form.openingHoursNotes} onChange={(event) => setValue("openingHoursNotes", event.target.value)} placeholder="Holiday hours, appointment-only details, etc." />
+                                </Field>
+                            </div>
+                        </Section>
+
                         <Section title="Business images" description="JPG, PNG, WebP, or AVIF. Maximum 5 MB per image.">
                             {[
                                 ["logo", "Business logo", "business-logo"],
@@ -629,6 +753,48 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                             </Field>
                             <Field label="Amenities">
                                 <textarea rows={4} maxLength={8000} className={`${inputClass} py-3`} value={form.amenitiesText} onChange={(event) => setValue("amenitiesText", event.target.value)} placeholder={"Parking\nWi-Fi"} />
+                            </Field>
+                        </Section>
+
+                        <Section title="Gallery images" description="Upload up to 20 gallery images. Add alt text to improve accessibility.">
+                            <div className="sm:col-span-2">
+                                <Field label={`Gallery images (${form.images.length}/20)`}>
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/avif"
+                                        disabled={Boolean(uploading) || form.images.length >= 20}
+                                        className={`${inputClass} file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700`}
+                                        onChange={(event) => {
+                                            const file = event.target.files?.[0];
+                                            event.target.value = "";
+                                            if (form.images.length >= 20) {
+                                                setError("A business can have at most 20 gallery images.");
+                                                return;
+                                            }
+                                            uploadImage(file, "business-gallery");
+                                        }}
+                                    />
+                                    {form.images.length > 0 && (
+                                        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                            {form.images.map((image, index) => (
+                                                <div key={image.publicId || `${image.url}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200">
+                                                    <img src={image.url} alt={image.alt || ""} className="h-28 w-full object-cover" />
+                                                    <button type="button" onClick={() => setValue("images", form.images.filter((_, imageIndex) => imageIndex !== index))} className="absolute right-2 top-2 rounded-lg bg-white/95 px-2 py-1 text-xs font-semibold text-rose-700 shadow">Remove</button>
+                                                    <input aria-label={`Gallery image ${index + 1} alt text`} maxLength={200} value={image.alt || ""} onChange={(event) => setValue("images", form.images.map((item, imageIndex) => imageIndex === index ? { ...item, alt: event.target.value } : item))} className="w-full border-t border-slate-200 px-2 py-2 text-xs outline-none focus:border-blue-500" placeholder="Image alt text" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </Field>
+                            </div>
+                        </Section>
+
+                        <Section title="Additional details" description="Optional payment options and languages supported. Enter one item per line.">
+                            <Field label="Payment methods">
+                                <textarea rows={3} maxLength={1500} className={`${inputClass} py-3`} value={form.paymentMethodsText} onChange={(event) => setValue("paymentMethodsText", event.target.value)} placeholder={"Cash\\nUPI\\nCredit card"} />
+                            </Field>
+                            <Field label="Languages">
+                                <textarea rows={3} maxLength={1500} className={`${inputClass} py-3`} value={form.languagesText} onChange={(event) => setValue("languagesText", event.target.value)} placeholder={"Marathi\\nHindi\\nEnglish"} />
                             </Field>
                         </Section>
 
