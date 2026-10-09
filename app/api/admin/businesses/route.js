@@ -368,7 +368,20 @@ export async function GET(request) {
         if (status) filter.status = status;
         if (verificationStatus) filter.verificationStatus = verificationStatus;
         if (businessType) filter.businessType = businessType;
-        if (featured !== null) filter.isFeatured = featured === "true";
+        if (featured === "true") {
+            filter.isFeatured = true;
+        } else if (featured === "false") {
+            // Treat older records without the field as not featured.
+            filter.$and = [
+                ...(filter.$and || []),
+                {
+                    $or: [
+                        { isFeatured: false },
+                        { isFeatured: { $exists: false } },
+                    ],
+                },
+            ];
+        }
         if (category) filter.category = category;
         if (location) filter.location = location;
 
