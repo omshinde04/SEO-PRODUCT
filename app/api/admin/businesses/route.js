@@ -317,6 +317,7 @@ export async function GET(request) {
         const status = searchParams.get("status");
         const verificationStatus = searchParams.get("verificationStatus");
         const businessType = searchParams.get("businessType");
+        const featured = searchParams.get("featured");
         const category = searchParams.get("category");
         const location = searchParams.get("location");
         const q = (searchParams.get("q") || "").trim();
@@ -346,6 +347,10 @@ export async function GET(request) {
             return apiError("Invalid business type filter.", 400);
         }
 
+        if (featured !== null && !["true", "false"].includes(featured)) {
+            return apiError("Invalid featured filter.", 400);
+        }
+
         if (category && !mongoose.isValidObjectId(category)) {
             return apiError("Invalid category ID filter.", 400);
         }
@@ -363,6 +368,7 @@ export async function GET(request) {
         if (status) filter.status = status;
         if (verificationStatus) filter.verificationStatus = verificationStatus;
         if (businessType) filter.businessType = businessType;
+        if (featured !== null) filter.isFeatured = featured === "true";
         if (category) filter.category = category;
         if (location) filter.location = location;
 
