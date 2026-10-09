@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
 import Location from "@/models/Location";
+import { optionalUrlSchema } from "@/lib/business/validation";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
@@ -75,7 +76,7 @@ const locationInputSchema = z
 
         coverImage: z
             .object({
-                url: z.string().trim().max(2048).optional().default(""),
+                url: optionalUrlSchema.optional().default(""),
                 publicId: z.string().trim().max(300).optional().default(""),
                 alt: z.string().trim().max(200).optional().default(""),
             })
