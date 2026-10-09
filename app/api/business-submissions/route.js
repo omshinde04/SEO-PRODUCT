@@ -41,7 +41,24 @@ export async function POST(request) {
     }
 
     try {
-        if (new URL(origin).origin !== new URL(request.url).origin) {
+        const allowedOrigins = new Set([new URL(request.url).origin]);
+        for (const configuredOrigin of [
+            process.env.NEXT_PUBLIC_SITE_URL,
+            process.env.SITE_URL,
+        ]) {
+            if (!configuredOrigin) continue;
+            try {
+                const parsed = new URL(configuredOrigin);
+                if (["http:", "https:"].includes(parsed.protocol)) {
+                    allowedOrigins.add(parsed.origin);
+                }
+            } catch {
+                // Ignore malformed optional origin configuration; the request
+                // origin still has to match the application origin.
+            }
+        }
+
+        if (!allowedOrigins.has(new URL(origin).origin)) {
             return apiError("Request origin is not allowed.", 403);
         }
     } catch {
