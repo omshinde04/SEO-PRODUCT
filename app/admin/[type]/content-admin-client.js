@@ -142,8 +142,12 @@ export default function ContentAdminPage({ type }) {
                 "/api/admin/content/" + encodeURIComponent(type) + "?" + params
             );
 
-            setItems(data.items || []);
-            setTotal(Number(data.total ?? data.pagination?.total ?? data.items?.length ?? 0));
+            const nextItems = data.items || [];
+            const nextTotal = Number(data.total ?? data.pagination?.total ?? nextItems.length);
+            setItems(nextItems);
+            setTotal(nextTotal);
+            const nextTotalPages = Math.max(1, Math.ceil(nextTotal / pageSize));
+            if (page > nextTotalPages) setPage(nextTotalPages);
 
             if (type === "seo" && data.items?.[0]) {
                 setSeo(Object.fromEntries(Object.keys(blankSeo).map((key) => [key, data.items[0][key] ?? blankSeo[key]])));
