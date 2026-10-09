@@ -54,6 +54,53 @@ function imageValue(value) {
     return value ? { ...blankImage, ...value } : { ...blankImage };
 }
 
+const DAYS = [
+    ["monday", "Monday"],
+    ["tuesday", "Tuesday"],
+    ["wednesday", "Wednesday"],
+    ["thursday", "Thursday"],
+    ["friday", "Friday"],
+    ["saturday", "Saturday"],
+    ["sunday", "Sunday"],
+];
+
+function weeklyHoursToText(weekly = {}) {
+    return Object.fromEntries(
+        DAYS.map(([day]) => [
+            day,
+            (weekly[day] || [])
+                .map((period) => `${period.open}-${period.close}`)
+                .join(", "),
+        ])
+    );
+}
+
+function parseWeeklyHours(textByDay) {
+    const weekly = {};
+    for (const [day] of DAYS) {
+        const value = String(textByDay?.[day] || "").trim();
+        if (!value) {
+            weekly[day] = [];
+            continue;
+        }
+        weekly[day] = value.split(",").map((range) => {
+            const [open, close, ...extra] = range.trim().split("-").map((part) => part.trim());
+            if (!open || !close || extra.length) {
+                throw new Error(`Enter opening hours for ${day} as HH:mm-HH:mm. Separate multiple periods with commas.`);
+            }
+            return { open, close };
+        });
+    }
+    return weekly;
+}
+
+function linesToArray(value) {
+    return String(value || "")
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
 function buildInitialForm(business) {
     return {
         name: business?.name || "",
@@ -66,6 +113,7 @@ function buildInitialForm(business) {
         location: business?.location?._id || business?.location || "",
         status: business?.status || "draft",
         verificationStatus: business?.verificationStatus || "unverified",
+        isFeatured: Boolean(business?.isFeatured),
         contact: {
             phone: "",
             alternatePhone: "",
@@ -89,6 +137,20 @@ function buildInitialForm(business) {
         },
         logo: imageValue(business?.logo),
         coverImage: imageValue(business?.coverImage),
+        images: (business?.images || []).map(imageValue),
+        socialLinks: {
+            instagram: "",
+            facebook: "",
+            youtube: "",
+            linkedin: "",
+            x: "",
+            tiktok: "",
+            ...(business?.socialLinks || {}),
+        },
+        openingHoursText: weeklyHoursToText(business?.openingHours?.weekly),
+        openingHoursNotes: business?.openingHours?.notes || "",
+        paymentMethodsText: (business?.paymentMethods || []).join("\n"),
+        languagesText: (business?.languages || []).join("\n"),
         seo: {
             title: "",
             description: "",
@@ -118,6 +180,7 @@ function toPayload(form) {
         location: form.location,
         status: form.status,
         verificationStatus: form.verificationStatus,
+        isFeatured: Boolean(form.isFeatured),
         priceRange: form.priceRange,
         contact: {
             phone: form.contact.phone.trim(),
@@ -127,12 +190,26 @@ function toPayload(form) {
             website: form.contact.website.trim(),
             preferredMethod: form.contact.preferredMethod,
         },
+        socialLinks: Object.fromEntries(
+            Object.entries(form.socialLinks).map(([key, value]) => [
+                key,
+                typeof value === "string" ? value.trim() : value,
+            ])
+        ),
         address: Object.fromEntries(
             Object.entries(form.address).map(([key, value]) => [
                 key,
                 typeof value === "string" ? value.trim() : value,
             ])
         ),
+        openingHours: {
+            timezone: "Asia/Kolkata",
+            notes: form.openingHoursNotes.trim(),
+            weekly: parseWeeklyHours(form.openingHoursText),
+        },
+        paymentMethods: linesToArray(form.paymentMethodsText),
+        languages: linesToArray(form.languagesText),
+        images: form.images,
         services: form.servicesText
             .split("\n")
             .map((value) => value.trim())
@@ -328,8 +405,12 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                 alt: file.name.replace(/\.[^.]+$/, "").slice(0, 200),
             };
 
-            if (purpose === "business-logo") setNested("logo", "", image);
-            else setNested("coverImage", "", image);
+            if (purpose === "business-logo") setValue("logo", image);
+            else if (purpose === "business-cover") setValue("coverImage", image);
+            else setForm((current) => ({
+                ...current,
+                images: [...current.images, image].slice(0, 20),
+            }));
 
             setError("");
         } catch (err) {
@@ -344,7 +425,19 @@ export default function BusinessForm({ business, onClose, onSaved }) {
         setError("");
         setFieldErrors({});
 
-        const payload = toPayload(form);
+        const publishIntent = event.nativeEvent?.submitter?.value === "publish";
+        let payload;
+
+        try {
+            payload = toPayload(form);
+        } catch (payloadError) {
+            setError(payloadError.message || "Check the business form values.");
+            return;
+        }
+
+        // The dedicated Publish action must publish even when the status
+        // dropdown is still set to Draft.
+        if (publishIntent) payload.status = "published";
 
         if (!payload.name || payload.name.length < 2) {
             setFieldErrors({ name: "Enter a business name of at least 2 characters." });
@@ -353,6 +446,11 @@ export default function BusinessForm({ business, onClose, onSaved }) {
 
         if (!payload.slug) {
             setFieldErrors({ slug: "Enter a valid URL slug." });
+            return;
+        }
+
+        if (payload.status === "published" && !payload.description.trim()) {
+            setError("Add a business description before publishing this listing.");
             return;
         }
 
@@ -404,13 +502,21 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                     );
                 }
 
-                throw new Error(data.message || "Could not save business.");
+                throw new Error(
+                    data.details?.[0]?.message ||
+                    data.message ||
+                    "Could not save business."
+                );
             }
 
             onSaved(
-                isEditing
-                    ? "Business changes saved successfully."
-                    : "Business created successfully."
+                payload.status === "published"
+                    ? "Business published successfully."
+                    : payload.status === "archived"
+                        ? "Business archived successfully."
+                        : isEditing
+                            ? "Business draft saved successfully."
+                            : "Business draft created successfully."
             );
         } catch (err) {
             setError(err.message || "Could not save business.");
@@ -420,8 +526,8 @@ export default function BusinessForm({ business, onClose, onSaved }) {
     }
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-stretch justify-end bg-slate-950/50 sm:p-3" role="presentation">
-            <section role="dialog" aria-modal="true" aria-labelledby="business-form-title" className="flex h-full w-full max-w-3xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl">
+        <div className="mb-6 w-full min-w-0">
+            <section aria-labelledby="business-form-title" className="flex max-h-[calc(100vh-9rem)] min-h-[32rem] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <header className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-7">
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">
@@ -511,9 +617,17 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                                 </select>
                             </Field>
 
+                            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4">
+                                <input type="checkbox" checked={form.isFeatured} onChange={(event) => setValue("isFeatured", event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                <span>
+                                    <span className="block text-xs font-semibold text-slate-800">Featured listing</span>
+                                    <span className="mt-1 block text-[11px] leading-5 text-slate-500">Mark this business as featured for supported directory placements.</span>
+                                </span>
+                            </label>
+
                             <div className="sm:col-span-2">
                                 <Field label="Description *" hint="Required before a business can be published.">
-                                    <textarea required maxLength={10000} rows={5} className={`${inputClass} py-3`} value={form.description} onChange={(event) => setValue("description", event.target.value)} placeholder="Describe the business, services, and what visitors should know." />
+                                    <textarea required={form.status === "published"} maxLength={10000} rows={5} className={`${inputClass} py-3`} value={form.description} onChange={(event) => setValue("description", event.target.value)} placeholder="Describe the business, services, and what visitors should know." />
                                 </Field>
                             </div>
 
@@ -580,6 +694,34 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                             </div>
                         </Section>
 
+                        <Section title="Social links" description="Optional public profiles. Use full HTTP or HTTPS URLs.">
+                            {[
+                                ["instagram", "Instagram"],
+                                ["facebook", "Facebook"],
+                                ["youtube", "YouTube"],
+                                ["linkedin", "LinkedIn"],
+                                ["x", "X"],
+                                ["tiktok", "TikTok"],
+                            ].map(([key, label]) => (
+                                <Field key={key} label={label}>
+                                    <input type="url" maxLength={2048} className={inputClass} value={form.socialLinks[key] || ""} onChange={(event) => setNested("socialLinks", key, event.target.value)} placeholder="https://…" />
+                                </Field>
+                            ))}
+                        </Section>
+
+                        <Section title="Opening hours" description="Use 24-hour HH:mm times. Example: 09:00-13:00, 17:00-21:00. Leave a day empty when closed.">
+                            {DAYS.map(([day, label]) => (
+                                <Field key={day} label={label} hint="Multiple periods can be separated by commas.">
+                                    <input maxLength={300} className={inputClass} value={form.openingHoursText[day] || ""} onChange={(event) => setNested("openingHoursText", day, event.target.value)} placeholder="09:00-18:00" />
+                                </Field>
+                            ))}
+                            <div className="sm:col-span-2">
+                                <Field label="Opening-hours notes">
+                                    <textarea rows={2} maxLength={500} className={`${inputClass} py-3`} value={form.openingHoursNotes} onChange={(event) => setValue("openingHoursNotes", event.target.value)} placeholder="Holiday hours, appointment-only details, etc." />
+                                </Field>
+                            </div>
+                        </Section>
+
                         <Section title="Business images" description="JPG, PNG, WebP, or AVIF. Maximum 5 MB per image.">
                             {[
                                 ["logo", "Business logo", "business-logo"],
@@ -618,6 +760,49 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                             </Field>
                         </Section>
 
+                        <Section title="Gallery images" description="Upload up to 20 gallery images. Add alt text to improve accessibility.">
+                            <div className="sm:col-span-2">
+                                <div className={labelClass}>
+                                    <span>Gallery images ({form.images.length}/20)</span>
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/avif"
+                                        disabled={Boolean(uploading) || form.images.length >= 20}
+                                        className={`${inputClass} file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700`}
+                                        onChange={(event) => {
+                                            const file = event.target.files?.[0];
+                                            event.target.value = "";
+                                            if (form.images.length >= 20) {
+                                                setError("A business can have at most 20 gallery images.");
+                                                return;
+                                            }
+                                            uploadImage(file, "business-gallery");
+                                        }}
+                                    />
+                                    {form.images.length > 0 && (
+                                        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                            {form.images.map((image, index) => (
+                                                <div key={image.publicId || `${image.url}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200">
+                                                    <img src={image.url} alt={image.alt || ""} className="h-28 w-full object-cover" />
+                                                    <button type="button" onClick={() => setValue("images", form.images.filter((_, imageIndex) => imageIndex !== index))} className="absolute right-2 top-2 rounded-lg bg-white/95 px-2 py-1 text-xs font-semibold text-rose-700 shadow">Remove</button>
+                                                    <input aria-label={`Gallery image ${index + 1} alt text`} maxLength={200} value={image.alt || ""} onChange={(event) => setValue("images", form.images.map((item, imageIndex) => imageIndex === index ? { ...item, alt: event.target.value } : item))} className="w-full border-t border-slate-200 px-2 py-2 text-xs outline-none focus:border-blue-500" placeholder="Image alt text" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </Section>
+
+                        <Section title="Additional details" description="Optional payment options and languages supported. Enter one item per line.">
+                            <Field label="Payment methods">
+                                <textarea rows={3} maxLength={1500} className={`${inputClass} py-3`} value={form.paymentMethodsText} onChange={(event) => setValue("paymentMethodsText", event.target.value)} placeholder={"Cash\\nUPI\\nCredit card"} />
+                            </Field>
+                            <Field label="Languages">
+                                <textarea rows={3} maxLength={1500} className={`${inputClass} py-3`} value={form.languagesText} onChange={(event) => setValue("languagesText", event.target.value)} placeholder={"Marathi\\nHindi\\nEnglish"} />
+                            </Field>
+                        </Section>
+
                         <Section title="SEO overrides" description="These overrides will be used by the SEO engine when it is implemented.">
                             <div className="sm:col-span-2">
                                 <Field label="SEO title" hint="Maximum 70 characters. Leave empty to use the future template fallback.">
@@ -653,12 +838,31 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                         <p className="text-[11px] text-slate-400">
                             {isEditing ? "Changes update the existing record." : "The business will be saved using the selected status."}
                         </p>
-                        <div className="flex justify-end gap-3">
+                        <div className="flex flex-wrap justify-end gap-3">
                             <button type="button" onClick={onClose} disabled={saving || Boolean(uploading)} className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
                                 Cancel
                             </button>
-                            <button type="submit" disabled={saving || Boolean(uploading) || loadingOptions} className="min-h-10 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
-                                {saving ? "Saving…" : isEditing ? "Save changes" : "Create business"}
+                            {form.status !== "published" && (
+                                <button
+                                    type="submit"
+                                    name="intent"
+                                    value="publish"
+                                    disabled={saving || Boolean(uploading) || loadingOptions}
+                                    className="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {saving ? "Saving…" : "Publish business"}
+                                </button>
+                            )}
+                            <button type="submit" name="intent" value="save" disabled={saving || Boolean(uploading) || loadingOptions} className="min-h-10 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                                {saving
+                                    ? "Saving…"
+                                    : form.status === "published"
+                                        ? "Save & publish"
+                                        : form.status === "archived"
+                                            ? "Save as archived"
+                                            : isEditing
+                                                ? "Save draft"
+                                                : "Create draft"}
                             </button>
                         </div>
                     </footer>

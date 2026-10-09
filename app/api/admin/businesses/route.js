@@ -232,6 +232,8 @@ const businessInputSchema = z
             .strict()
             .optional(),
 
+        isFeatured: z.boolean().optional().default(false),
+
         status: z
             .enum(businessStatuses)
             .optional()
@@ -315,6 +317,7 @@ export async function GET(request) {
         const status = searchParams.get("status");
         const verificationStatus = searchParams.get("verificationStatus");
         const businessType = searchParams.get("businessType");
+        const featured = searchParams.get("featured");
         const category = searchParams.get("category");
         const location = searchParams.get("location");
         const q = (searchParams.get("q") || "").trim();
@@ -344,6 +347,10 @@ export async function GET(request) {
             return apiError("Invalid business type filter.", 400);
         }
 
+        if (featured !== null && !["true", "false"].includes(featured)) {
+            return apiError("Invalid featured filter.", 400);
+        }
+
         if (category && !mongoose.isValidObjectId(category)) {
             return apiError("Invalid category ID filter.", 400);
         }
@@ -361,6 +368,20 @@ export async function GET(request) {
         if (status) filter.status = status;
         if (verificationStatus) filter.verificationStatus = verificationStatus;
         if (businessType) filter.businessType = businessType;
+        if (featured === "true") {
+            filter.isFeatured = true;
+        } else if (featured === "false") {
+            // Treat older records without the field as not featured.
+            filter.$and = [
+                ...(filter.$and || []),
+                {
+                    $or: [
+                        { isFeatured: false },
+                        { isFeatured: { $exists: false } },
+                    ],
+                },
+            ];
+        }
         if (category) filter.category = category;
         if (location) filter.location = location;
 

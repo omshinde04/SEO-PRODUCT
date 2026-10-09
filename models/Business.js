@@ -257,6 +257,7 @@ const businessSchema = new Schema(
         },
 
         // 10. Publication and moderation
+        isFeatured: { type: Boolean, default: false, index: true },
         status: {
             type: String,
             enum: ["draft", "published", "archived"],

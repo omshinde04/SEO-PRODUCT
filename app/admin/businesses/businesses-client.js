@@ -1,9 +1,31 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import BusinessForm from "./business-form";
+import StatusBadge from "../components/status-badge";
+import PageHeader from "../components/page-header";
 
-const TYPES = [
+const PAGE_SIZE = 20;
+const STATUS_OPTIONS = [
+    ["", "All statuses"],
+    ["published", "Published"],
+    ["draft", "Draft"],
+    ["archived", "Archived"],
+];
+const VERIFICATION_OPTIONS = [
+    ["", "All verification"],
+    ["verified", "Verified"],
+    ["pending", "Pending"],
+    ["unverified", "Unverified"],
+    ["rejected", "Rejected"],
+];
+const FEATURED_OPTIONS = [
+    ["", "All listings"],
+    ["true", "Featured only"],
+    ["false", "Not featured"],
+];
+const TYPE_OPTIONS = [
+    ["", "All types"],
     ["business", "General business"],
     ["restaurant", "Restaurant"],
     ["hotel", "Hotel"],
@@ -17,203 +39,76 @@ const TYPES = [
     ["other", "Other"],
 ];
 
-const METHODS = [
-    ["any", "Any method"],
-    ["phone", "Phone"],
-    ["whatsapp", "WhatsApp"],
-    ["email", "Email"],
-    ["website", "Website"],
-];
+const controlClass =
+    "min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
+const buttonClass =
+    "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
-const PRICES = [
-    ["not_applicable", "Not applicable"],
-    ["budget", "Budget"],
-    ["moderate", "Moderate"],
-    ["premium", "Premium"],
-    ["luxury", "Luxury"],
-];
+function formatDate(value) {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    }).format(date);
+}
 
-const inputClass =
-    "mt-1.5 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
-
-const labelClass = "block text-xs font-semibold text-slate-700";
-const blankImage = { url: "", publicId: "", alt: "" };
-
-function slugify(value) {
-    return value
-        .normalize("NFKD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
+function initials(name) {
+    return String(name || "Business")
         .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 180);
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("");
 }
 
-function imageValue(value) {
-    return value ? { ...blankImage, ...value } : { ...blankImage };
+function getErrorMessage(data, fallback) {
+    return typeof data?.message === "string" && data.message.trim()
+        ? data.message
+        : fallback;
 }
 
-function buildInitialForm(business) {
-    return {
-        name: business?.name || "",
-        slug: business?.slug || "",
-        tagline: business?.tagline || "",
-        description: business?.description || "",
-        businessType: business?.businessType || "business",
-        establishedYear: business?.establishedYear ?? "",
-        category: business?.category?._id || business?.category || "",
-        location: business?.location?._id || business?.location || "",
-        status: business?.status || "draft",
-        verificationStatus: business?.verificationStatus || "unverified",
-        contact: {
-            phone: "",
-            alternatePhone: "",
-            whatsapp: "",
-            email: "",
-            website: "",
-            preferredMethod: "any",
-            ...(business?.contact || {}),
-        },
-        address: {
-            line1: "",
-            line2: "",
-            area: "",
-            city: "",
-            district: "",
-            state: "",
-            country: "India",
-            postalCode: "",
-            formatted: "",
-            ...(business?.address || {}),
-        },
-        logo: imageValue(business?.logo),
-        coverImage: imageValue(business?.coverImage),
-        seo: {
-            title: "",
-            description: "",
-            canonicalUrl: "",
-            noIndex: false,
-            ...(business?.seo || {}),
-        },
-        priceRange: business?.priceRange || "not_applicable",
-        servicesText: (business?.services || []).join("\n"),
-        amenitiesText: (business?.amenities || []).join("\n"),
-        serviceAreasText: (business?.serviceAreas || []).join(", "),
-        coordinates: {
-            latitude: business?.coordinates?.latitude ?? "",
-            longitude: business?.coordinates?.longitude ?? "",
-        },
-    };
-}
-
-function toPayload(form) {
-    const payload = {
-        name: form.name.trim(),
-        slug: form.slug.trim(),
-        tagline: form.tagline.trim(),
-        description: form.description.trim(),
-        businessType: form.businessType,
-        category: form.category,
-        location: form.location,
-        status: form.status,
-        verificationStatus: form.verificationStatus,
-        priceRange: form.priceRange,
-        contact: {
-            phone: form.contact.phone.trim(),
-            alternatePhone: form.contact.alternatePhone.trim(),
-            whatsapp: form.contact.whatsapp.trim(),
-            email: form.contact.email.trim(),
-            website: form.contact.website.trim(),
-            preferredMethod: form.contact.preferredMethod,
-        },
-        address: Object.fromEntries(
-            Object.entries(form.address).map(([key, value]) => [
-                key,
-                typeof value === "string" ? value.trim() : value,
-            ])
-        ),
-        services: form.servicesText
-            .split("\n")
-            .map((value) => value.trim())
-            .filter(Boolean),
-        amenities: form.amenitiesText
-            .split("\n")
-            .map((value) => value.trim())
-            .filter(Boolean),
-        serviceAreas: form.serviceAreasText
-            .split(",")
-            .map((value) => value.trim())
-            .filter(Boolean),
-        seo: {
-            title: form.seo.title.trim(),
-            description: form.seo.description.trim(),
-            canonicalUrl: form.seo.canonicalUrl.trim(),
-            noIndex: Boolean(form.seo.noIndex),
-        },
-        logo: form.logo.url ? form.logo : null,
-        coverImage: form.coverImage.url ? form.coverImage : null,
-        coordinates: {
-            latitude:
-                form.coordinates.latitude === ""
-                    ? null
-                    : Number(form.coordinates.latitude),
-            longitude:
-                form.coordinates.longitude === ""
-                    ? null
-                    : Number(form.coordinates.longitude),
-        },
-    };
-
-    if (form.establishedYear === "" || form.establishedYear === null) {
-        payload.establishedYear = null;
-    } else {
-        payload.establishedYear = Number(form.establishedYear);
-    }
-
-    return payload;
-}
-
-function Field({ label, children, hint }) {
-    return (
-        <label className={labelClass}>
-            {label}
-            {children}
-            {hint && <span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">{hint}</span>}
-        </label>
-    );
-}
-
-function Section({ title, description, children }) {
-    return (
-        <section className="border-b border-slate-100 px-5 py-6 sm:px-7">
-            <div className="mb-5">
-                <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-                {description && <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-        </section>
-    );
-}
-
-export default function BusinessForm({ business, onClose, onSaved }) {
-    const isEditing = Boolean(business?._id);
-    const [form, setForm] = useState(() => buildInitialForm(business));
+export default function BusinessesClient() {
+    const [businesses, setBusinesses] = useState([]);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: PAGE_SIZE,
+        total: 0,
+        totalPages: 0,
+    });
+    const [query, setQuery] = useState("");
+    const [search, setSearch] = useState("");
+    const [status, setStatus] = useState("");
+    const [verificationStatus, setVerificationStatus] = useState("");
+    const [businessType, setBusinessType] = useState("");
+    const [featured, setFeatured] = useState("");
+    const [category, setCategory] = useState("");
+    const [location, setLocation] = useState("");
     const [categories, setCategories] = useState([]);
     const [locations, setLocations] = useState([]);
-    const [loadingOptions, setLoadingOptions] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState("");
+    const [optionsError, setOptionsError] = useState("");
+    const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [fieldErrors, setFieldErrors] = useState({});
-    const [slugTouched, setSlugTouched] = useState(isEditing);
+    const [notice, setNotice] = useState("");
+    const [editingBusiness, setEditingBusiness] = useState(null);
+    const [formOpen, setFormOpen] = useState(false);
+    const [busyId, setBusyId] = useState("");
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setSearch(query.trim());
+            setPage(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [query]);
 
     useEffect(() => {
         let active = true;
 
-        async function loadOptions() {
-            setLoadingOptions(true);
-
+        async function loadFilterOptions() {
             try {
                 const [categoryResponse, locationResponse] = await Promise.all([
                     fetch("/api/admin/categories?limit=100&status=active", {
@@ -225,445 +120,370 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                         cache: "no-store",
                     }),
                 ]);
-
                 const [categoryData, locationData] = await Promise.all([
                     categoryResponse.json(),
                     locationResponse.json(),
                 ]);
 
-                if (!categoryResponse.ok || !categoryData.success) {
-                    throw new Error(categoryData.message || "Could not load categories.");
+                if (!categoryResponse.ok || !categoryData?.success) {
+                    throw new Error(categoryData?.message || "Could not load category filters.");
                 }
-
-                if (!locationResponse.ok || !locationData.success) {
-                    throw new Error(locationData.message || "Could not load locations.");
+                if (!locationResponse.ok || !locationData?.success) {
+                    throw new Error(locationData?.message || "Could not load location filters.");
                 }
 
                 if (active) {
                     setCategories(categoryData.items || []);
                     setLocations(locationData.items || []);
                 }
-            } catch (err) {
-                if (active) setError(err.message || "Could not load categories and locations.");
-            } finally {
-                if (active) setLoadingOptions(false);
+            } catch (optionError) {
+                if (active) setOptionsError(optionError.message || "Could not load category and location filters.");
             }
         }
 
-        loadOptions();
-
-        return () => {
-            active = false;
-        };
+        loadFilterOptions();
+        return () => { active = false; };
     }, []);
 
-    function setValue(key, value) {
-        setForm((current) => ({ ...current, [key]: value }));
-    }
-
-    function setNested(group, key, value) {
-        setForm((current) => ({
-            ...current,
-            [group]: { ...current[group], [key]: value },
-        }));
-    }
-
-    async function uploadImage(file, purpose) {
-        if (!file) return;
-
-        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-
-        if (!allowedTypes.includes(file.type)) {
-            setError("Choose a JPG, PNG, WebP, or AVIF image.");
-            return;
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            setError("Each image must be 5 MB or smaller.");
-            return;
-        }
-
+    const loadBusinesses = useCallback(async ({ signal } = {}) => {
+        setLoading(true);
         setError("");
-        setUploading(purpose);
+
+        const params = new URLSearchParams({
+            page: String(page),
+            limit: String(PAGE_SIZE),
+        });
+        if (search) params.set("q", search);
+        if (status) params.set("status", status);
+        if (verificationStatus) params.set("verificationStatus", verificationStatus);
+        if (businessType) params.set("businessType", businessType);
+        if (featured) params.set("featured", featured);
+        if (category) params.set("category", category);
+        if (location) params.set("location", location);
 
         try {
-            const signatureResponse = await fetch("/api/admin/uploads/signature", {
-                method: "POST",
+            const response = await fetch(`/api/admin/businesses?${params.toString()}`, {
+                method: "GET",
                 credentials: "same-origin",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ purpose }),
+                cache: "no-store",
+                signal,
             });
+            const data = await response.json().catch(() => null);
 
-            const signatureData = await signatureResponse.json();
-
-            if (!signatureResponse.ok || !signatureData.success) {
-                throw new Error(signatureData.message || "Could not prepare image upload.");
+            if (!response.ok || !data?.success) {
+                throw new Error(getErrorMessage(data, "Unable to load businesses."));
             }
 
-            const config = signatureData.upload;
-            const body = new FormData();
-
-            body.append("file", file);
-            body.append("api_key", config.apiKey);
-            body.append("timestamp", String(config.timestamp));
-            body.append("signature", config.signature);
-            body.append("folder", config.folder);
-            body.append("public_id", config.publicId);
-            body.append("upload_preset", config.uploadPreset);
-
-            const uploadResponse = await fetch(config.uploadUrl, {
-                method: "POST",
-                body,
-            });
-
-            const uploadData = await uploadResponse.json();
-
-            if (!uploadResponse.ok || !uploadData.secure_url || !uploadData.public_id) {
-                throw new Error(uploadData.error?.message || "Cloudinary image upload failed.");
-            }
-
-            const image = {
-                url: uploadData.secure_url,
-                publicId: uploadData.public_id,
-                alt: file.name.replace(/\.[^.]+$/, "").slice(0, 200),
+            const nextPagination = data.pagination || {
+                page,
+                limit: PAGE_SIZE,
+                total: Array.isArray(data.items) ? data.items.length : 0,
+                totalPages: 1,
             };
 
-            if (purpose === "business-logo") setNested("logo", "", image);
-            else setNested("coverImage", "", image);
+            // After archiving or changing a record, the current page can stop
+            // existing. Move to the last valid page instead of showing a false
+            // empty state while records still exist.
+            const lastValidPage = Math.max(1, nextPagination.totalPages || 0);
+            if (page > lastValidPage) {
+                setPage(lastValidPage);
+                return;
+            }
 
-            setError("");
-        } catch (err) {
-            setError(err.message || "Image upload failed.");
+            setBusinesses(Array.isArray(data.items) ? data.items : []);
+            setPagination(nextPagination);
+        } catch (fetchError) {
+            if (fetchError?.name !== "AbortError") {
+                setError(fetchError.message || "Unable to load businesses.");
+                setBusinesses([]);
+            }
         } finally {
-            setUploading("");
+            if (!signal?.aborted) setLoading(false);
+        }
+    }, [page, search, status, verificationStatus, businessType, featured, category, location]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        let cancelled = false;
+
+        queueMicrotask(() => {
+            if (!cancelled) {
+                loadBusinesses({ signal: controller.signal });
+            }
+        });
+
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
+    }, [loadBusinesses]);
+
+    const summary = useMemo(() => ({
+        shown: businesses.length,
+        total: pagination.total || 0,
+        currentPage: pagination.page || page,
+        totalPages: pagination.totalPages || 0,
+    }), [businesses.length, pagination, page]);
+
+    function openCreateForm() {
+        setEditingBusiness(null);
+        setNotice("");
+        setFormOpen(true);
+    }
+
+    async function openEditForm(business) {
+        setBusyId(business._id);
+        setError("");
+        setNotice("");
+        try {
+            const response = await fetch(`/api/admin/businesses/${business._id}`, {
+                credentials: "same-origin",
+                cache: "no-store",
+            });
+            const data = await response.json().catch(() => null);
+            if (!response.ok || !data?.success) {
+                throw new Error(getErrorMessage(data, "Unable to load this business."));
+            }
+            setEditingBusiness(data.item || business);
+            setFormOpen(true);
+        } catch (fetchError) {
+            setError(fetchError.message || "Unable to load this business.");
+        } finally {
+            setBusyId("");
         }
     }
 
-    async function handleSubmit(event) {
-        event.preventDefault();
+    async function archiveBusiness(business) {
+        const confirmed = window.confirm(
+            `Archive "${business.name}"? This keeps the record in the database but removes it from active listings.`
+        );
+        if (!confirmed) return;
+
+        setBusyId(business._id);
         setError("");
-        setFieldErrors({});
-
-        const payload = toPayload(form);
-
-        if (!payload.name || payload.name.length < 2) {
-            setFieldErrors({ name: "Enter a business name of at least 2 characters." });
-            return;
-        }
-
-        if (!payload.slug) {
-            setFieldErrors({ slug: "Enter a valid URL slug." });
-            return;
-        }
-
-        if (!payload.category || !payload.location) {
-            setError("Choose both a category and a location.");
-            return;
-        }
-
-        if (
-            (payload.coordinates.latitude === null) !==
-            (payload.coordinates.longitude === null)
-        ) {
-            setError("Provide both latitude and longitude, or leave both empty.");
-            return;
-        }
-
-        if (payload.establishedYear !== null && (
-            !Number.isInteger(payload.establishedYear) ||
-            payload.establishedYear < 1800 ||
-            payload.establishedYear > new Date().getFullYear()
-        )) {
-            setError("Enter a valid established year.");
-            return;
-        }
-
-        setSaving(true);
-
+        setNotice("");
         try {
-            const response = await fetch(
-                isEditing
-                    ? `/api/admin/businesses/${business._id}`
-                    : "/api/admin/businesses",
-                {
-                    method: isEditing ? "PATCH" : "POST",
-                    credentials: "same-origin",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                if (Array.isArray(data.details)) {
-                    setFieldErrors(
-                        Object.fromEntries(
-                            data.details.map((item) => [item.field, item.message])
-                        )
-                    );
-                }
-
-                throw new Error(data.message || "Could not save business.");
+            const response = await fetch(`/api/admin/businesses/${business._id}`, {
+                method: "DELETE",
+                credentials: "same-origin",
+            });
+            const data = await response.json().catch(() => null);
+            if (!response.ok || !data?.success) {
+                throw new Error(getErrorMessage(data, "Unable to archive this business."));
             }
-
-            onSaved(
-                isEditing
-                    ? "Business changes saved successfully."
-                    : "Business created successfully."
-            );
-        } catch (err) {
-            setError(err.message || "Could not save business.");
+            setNotice(data.message || "Business archived successfully.");
+            await loadBusinesses();
+        } catch (archiveError) {
+            setError(archiveError.message || "Unable to archive this business.");
         } finally {
-            setSaving(false);
+            setBusyId("");
         }
+    }
+
+    async function handleSaved(message) {
+        setFormOpen(false);
+        setEditingBusiness(null);
+        setNotice(message);
+        setPage(1);
+        if (page === 1) {
+            await loadBusinesses();
+        }
+    }
+
+    function clearFilters() {
+        setQuery("");
+        setSearch("");
+        setStatus("");
+        setVerificationStatus("");
+        setBusinessType("");
+        setFeatured("");
+        setCategory("");
+        setLocation("");
+        setPage(1);
     }
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-stretch justify-end bg-slate-950/50 sm:p-3" role="presentation">
-            <section role="dialog" aria-modal="true" aria-labelledby="business-form-title" className="flex h-full w-full max-w-3xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl">
-                <header className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-7">
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">
-                            BUSINESS MANAGEMENT
-                        </p>
-                        <h2 id="business-form-title" className="mt-1 text-lg font-bold text-slate-900">
-                            {isEditing ? "Edit business" : "Add business"}
-                        </h2>
-                        <p className="mt-1 text-xs text-slate-500">
-                            {isEditing ? "Update this business record." : "Create a new business listing."}
-                        </p>
-                    </div>
-                    <button type="button" onClick={onClose} aria-label="Close form" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50">
-                        ✕
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+            <PageHeader
+                eyebrow="DIRECTORY MANAGEMENT"
+                title="Businesses"
+                description="Create, update, publish, and organize business listings for your local discovery platform."
+                action={
+                    <button type="button" onClick={openCreateForm} className={`${buttonClass} bg-blue-600 text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20`}>
+                        <span aria-hidden="true" className="text-lg leading-none">+</span>
+                        Add business
                     </button>
-                </header>
+                }
+            />
 
-                <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-                    <div className="flex-1 overflow-y-auto">
-                        {error && (
-                            <div role="alert" className="mx-5 mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-800 sm:mx-7">
-                                {error}
-                            </div>
-                        )}
+            {notice && (
+                <div role="status" className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    <span>{notice}</span>
+                    <button type="button" onClick={() => setNotice("")} aria-label="Dismiss message" className="font-semibold text-emerald-700">×</button>
+                </div>
+            )}
+            {optionsError && (
+                <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                    Category/location filters could not be loaded: {optionsError}
+                </div>
+            )}
+            {error && (
+                <div role="alert" className="mb-5 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-rose-800">{error}</p>
+                    <button type="button" onClick={() => loadBusinesses()} disabled={loading} className={`${buttonClass} border border-rose-200 bg-white text-rose-700 hover:bg-rose-100`}>Try again</button>
+                </div>
+            )}
 
-                        <Section title="Business identity" description="Public name, URL, classification, and publication state.">
-                            <Field label="Business name *">
-                                <input required minLength={2} maxLength={160} className={inputClass} value={form.name} onChange={(event) => {
-                                    const name = event.target.value;
-                                    setForm((current) => ({
-                                        ...current,
-                                        name,
-                                        slug: slugTouched ? current.slug : slugify(name),
-                                    }));
-                                }} placeholder="e.g. Ghoti Family Restaurant" />
-                                {fieldErrors.name && <span className="mt-1 block text-[11px] text-rose-600">{fieldErrors.name}</span>}
-                            </Field>
-
-                            <Field label="URL slug *" hint="Lowercase letters, numbers, and hyphens only.">
-                                <input required maxLength={180} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" className={inputClass} value={form.slug} onChange={(event) => {
-                                    setSlugTouched(true);
-                                    setValue("slug", slugify(event.target.value));
-                                }} placeholder="ghoti-family-restaurant" />
-                                {fieldErrors.slug && <span className="mt-1 block text-[11px] text-rose-600">{fieldErrors.slug}</span>}
-                            </Field>
-
-                            <Field label="Tagline">
-                                <input maxLength={200} className={inputClass} value={form.tagline} onChange={(event) => setValue("tagline", event.target.value)} />
-                            </Field>
-
-                            <Field label="Business type *">
-                                <select className={inputClass} value={form.businessType} onChange={(event) => setValue("businessType", event.target.value)}>
-                                    {TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                                </select>
-                            </Field>
-
-                            <Field label="Category *">
-                                <select required disabled={loadingOptions} className={inputClass} value={form.category} onChange={(event) => setValue("category", event.target.value)}>
-                                    <option value="">{loadingOptions ? "Loading categories…" : "Select category"}</option>
-                                    {categories.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
-                                    {isEditing && form.category && !categories.some((item) => item._id === form.category) && <option value={form.category}>Current category (inactive)</option>}
-                                </select>
-                            </Field>
-
-                            <Field label="Location *">
-                                <select required disabled={loadingOptions} className={inputClass} value={form.location} onChange={(event) => setValue("location", event.target.value)}>
-                                    <option value="">{loadingOptions ? "Loading locations…" : "Select location"}</option>
-                                    {locations.map((item) => <option key={item._id} value={item._id}>{item.name} · {item.type}</option>)}
-                                    {isEditing && form.location && !locations.some((item) => item._id === form.location) && <option value={form.location}>Current location (inactive)</option>}
-                                </select>
-                            </Field>
-
-                            <Field label="Publication status">
-                                <select className={inputClass} value={form.status} onChange={(event) => setValue("status", event.target.value)}>
-                                    <option value="draft">Draft</option>
-                                    <option value="published">Published</option>
-                                    <option value="archived">Archived</option>
-                                </select>
-                            </Field>
-
-                            <Field label="Verification status">
-                                <select className={inputClass} value={form.verificationStatus} onChange={(event) => setValue("verificationStatus", event.target.value)}>
-                                    <option value="unverified">Unverified</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="verified">Verified</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
-                            </Field>
-
-                            <div className="sm:col-span-2">
-                                <Field label="Description *" hint="Required before a business can be published.">
-                                    <textarea required maxLength={10000} rows={5} className={`${inputClass} py-3`} value={form.description} onChange={(event) => setValue("description", event.target.value)} placeholder="Describe the business, services, and what visitors should know." />
-                                </Field>
-                            </div>
-
-                            <Field label="Established year">
-                                <input type="number" min="1800" max={new Date().getFullYear()} className={inputClass} value={form.establishedYear} onChange={(event) => setValue("establishedYear", event.target.value)} placeholder="e.g. 2018" />
-                            </Field>
-
-                            <Field label="Price range">
-                                <select className={inputClass} value={form.priceRange} onChange={(event) => setValue("priceRange", event.target.value)}>
-                                    {PRICES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                                </select>
-                            </Field>
-                        </Section>
-
-                        <Section title="Contact information" description="These fields are optional unless your business requirements specify otherwise.">
-                            {[
-                                ["phone", "Phone", "tel"],
-                                ["alternatePhone", "Alternate phone", "tel"],
-                                ["whatsapp", "WhatsApp number", "tel"],
-                                ["email", "Email address", "email"],
-                                ["website", "Website URL", "url"],
-                            ].map(([key, label, type]) => (
-                                <Field key={key} label={label}>
-                                    <input type={type} maxLength={key === "email" ? 254 : 2048} className={inputClass} value={form.contact[key] || ""} onChange={(event) => setNested("contact", key, event.target.value)} placeholder={type === "url" ? "https://example.com" : ""} />
-                                </Field>
-                            ))}
-
-                            <Field label="Preferred contact method">
-                                <select className={inputClass} value={form.contact.preferredMethod} onChange={(event) => setNested("contact", "preferredMethod", event.target.value)}>
-                                    {METHODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                                </select>
-                            </Field>
-                        </Section>
-
-                        <Section title="Address & coordinates" description="Use complete location information where available.">
-                            {[
-                                ["line1", "Address line 1"],
-                                ["line2", "Address line 2"],
-                                ["area", "Area / locality"],
-                                ["city", "City / town"],
-                                ["district", "District"],
-                                ["state", "State"],
-                                ["postalCode", "Postal code"],
-                                ["country", "Country"],
-                                ["formatted", "Formatted address"],
-                            ].map(([key, label]) => (
-                                <Field key={key} label={label}>
-                                    <input maxLength={key === "formatted" ? 500 : 200} className={inputClass} value={form.address[key] || ""} onChange={(event) => setNested("address", key, event.target.value)} />
-                                </Field>
-                            ))}
-
-                            <Field label="Latitude">
-                                <input type="number" step="any" min="-90" max="90" className={inputClass} value={form.coordinates.latitude} onChange={(event) => setNested("coordinates", "latitude", event.target.value)} placeholder="Optional" />
-                            </Field>
-
-                            <Field label="Longitude">
-                                <input type="number" step="any" min="-180" max="180" className={inputClass} value={form.coordinates.longitude} onChange={(event) => setNested("coordinates", "longitude", event.target.value)} placeholder="Optional" />
-                            </Field>
-
-                            <div className="sm:col-span-2">
-                                <Field label="Service areas" hint="Separate areas with commas.">
-                                    <input maxLength={3000} className={inputClass} value={form.serviceAreasText} onChange={(event) => setValue("serviceAreasText", event.target.value)} placeholder="Ghoti, Igatpuri, Nashik" />
-                                </Field>
-                            </div>
-                        </Section>
-
-                        <Section title="Business images" description="JPG, PNG, WebP, or AVIF. Maximum 5 MB per image.">
-                            {[
-                                ["logo", "Business logo", "business-logo"],
-                                ["coverImage", "Cover image", "business-cover"],
-                            ].map(([key, label, purpose]) => (
-                                <div key={key} className="min-w-0">
-                                    <p className={labelClass}>{label}</p>
-                                    {form[key].url && (
-                                        <div className="mt-2 flex items-center gap-3">
-                                            <img src={form[key].url} alt={form[key].alt || ""} className="h-16 w-16 rounded-xl border border-slate-200 object-cover" />
-                                            <button type="button" onClick={() => setValue(key, { ...blankImage })} className="text-xs font-semibold text-rose-600 hover:text-rose-700">Remove image</button>
-                                        </div>
-                                    )}
-                                    <input
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/webp,image/avif"
-                                        disabled={Boolean(uploading)}
-                                        className={`${inputClass} file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700`}
-                                        onChange={(event) => {
-                                            const file = event.target.files?.[0];
-                                            event.target.value = "";
-                                            uploadImage(file, purpose);
-                                        }}
-                                    />
-                                    {uploading === purpose && <p role="status" className="mt-2 text-xs text-blue-600">Uploading image…</p>}
-                                </div>
-                            ))}
-                        </Section>
-
-                        <Section title="Services & amenities" description="Enter one item per line.">
-                            <Field label="Services">
-                                <textarea rows={4} maxLength={12000} className={`${inputClass} py-3`} value={form.servicesText} onChange={(event) => setValue("servicesText", event.target.value)} placeholder={"Dine-in\nTakeaway"} />
-                            </Field>
-                            <Field label="Amenities">
-                                <textarea rows={4} maxLength={8000} className={`${inputClass} py-3`} value={form.amenitiesText} onChange={(event) => setValue("amenitiesText", event.target.value)} placeholder={"Parking\nWi-Fi"} />
-                            </Field>
-                        </Section>
-
-                        <Section title="SEO overrides" description="These overrides will be used by the SEO engine when it is implemented.">
-                            <div className="sm:col-span-2">
-                                <Field label="SEO title" hint="Maximum 70 characters. Leave empty to use the future template fallback.">
-                                    <input maxLength={70} className={inputClass} value={form.seo.title} onChange={(event) => setNested("seo", "title", event.target.value)} />
-                                    <span className="mt-1 block text-right text-[11px] font-normal text-slate-400">{form.seo.title.length}/70</span>
-                                </Field>
-                            </div>
-
-                            <div className="sm:col-span-2">
-                                <Field label="SEO description" hint="Maximum 170 characters.">
-                                    <textarea rows={3} maxLength={170} className={`${inputClass} py-3`} value={form.seo.description} onChange={(event) => setNested("seo", "description", event.target.value)} />
-                                    <span className="mt-1 block text-right text-[11px] font-normal text-slate-400">{form.seo.description.length}/170</span>
-                                </Field>
-                            </div>
-
-                            <div className="sm:col-span-2">
-                                <Field label="Canonical URL" hint="Optional absolute HTTP/HTTPS URL.">
-                                    <input type="url" maxLength={2048} className={inputClass} value={form.seo.canonicalUrl} onChange={(event) => setNested("seo", "canonicalUrl", event.target.value)} placeholder="https://example.com/business/slug" />
-                                </Field>
-                            </div>
-
-                            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 sm:col-span-2">
-                                <input type="checkbox" checked={Boolean(form.seo.noIndex)} onChange={(event) => setNested("seo", "noIndex", event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                                <span>
-                                    <span className="block text-xs font-semibold text-slate-800">No-index this business</span>
-                                    <span className="mt-1 block text-[11px] leading-5 text-slate-500">SEO directive only. The actual public metadata behavior must be wired into the central SEO engine.</span>
-                                </span>
-                            </label>
-                        </Section>
-                    </div>
-
-                    <footer className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-                        <p className="text-[11px] text-slate-400">
-                            {isEditing ? "Changes update the existing record." : "The business will be saved using the selected status."}
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <button type="button" onClick={onClose} disabled={saving || Boolean(uploading)} className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                                Cancel
-                            </button>
-                            <button type="submit" disabled={saving || Boolean(uploading) || loadingOptions} className="min-h-10 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
-                                {saving ? "Saving…" : isEditing ? "Save changes" : "Create business"}
-                            </button>
-                        </div>
-                    </footer>
-                </form>
+            <section aria-label="Business listing statistics" className="mb-5 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-medium text-slate-500">Total matching businesses</p>
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{loading ? "…" : summary.total.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-medium text-slate-500">Current page</p>
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{loading ? "…" : `${summary.currentPage} / ${Math.max(summary.totalPages, 1)}`}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-medium text-slate-500">Records shown</p>
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{loading ? "…" : summary.shown.toLocaleString("en-IN")}</p>
+                </div>
             </section>
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.02]">
+                <div className="border-b border-slate-100 p-4 sm:p-5">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_repeat(6,minmax(130px,1fr))_auto]">
+                        <label className="relative block">
+                            <span className="sr-only">Search businesses</span>
+                            <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
+                            <input type="search" maxLength={100} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, slug, city…" className={`${controlClass} pl-9`} />
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by status</span>
+                            <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className={controlClass}>
+                                {STATUS_OPTIONS.map(([value, label]) => <option key={value || "all"} value={value}>{label}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by verification</span>
+                            <select value={verificationStatus} onChange={(event) => { setVerificationStatus(event.target.value); setPage(1); }} className={controlClass}>
+                                {VERIFICATION_OPTIONS.map(([value, label]) => <option key={value || "all"} value={value}>{label}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by business type</span>
+                            <select value={businessType} onChange={(event) => { setBusinessType(event.target.value); setPage(1); }} className={controlClass}>
+                                {TYPE_OPTIONS.map(([value, label]) => <option key={value || "all"} value={value}>{label}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by featured status</span>
+                            <select value={featured} onChange={(event) => { setFeatured(event.target.value); setPage(1); }} className={controlClass}>
+                                {FEATURED_OPTIONS.map(([value, label]) => <option key={value || "all"} value={value}>{label}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by category</span>
+                            <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} className={controlClass}>
+                                <option value="">All categories</option>
+                                {categories.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by location</span>
+                            <select value={location} onChange={(event) => { setLocation(event.target.value); setPage(1); }} className={controlClass}>
+                                <option value="">All locations</option>
+                                {locations.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
+                            </select>
+                        </label>
+                        <button type="button" onClick={clearFilters} className={`${buttonClass} border border-slate-200 bg-white text-slate-600 hover:bg-slate-50`}>Clear</button>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs text-slate-500">Search updates automatically. Use filters to narrow your results.</p>
+                        <button type="button" onClick={() => loadBusinesses()} disabled={loading} className={`${buttonClass} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}>
+                            <span aria-hidden="true" className={loading ? "animate-spin" : ""}>↻</span> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="space-y-4 p-6" aria-label="Loading businesses">
+                        {[1, 2, 3, 4, 5].map((item) => <div key={item} className="flex animate-pulse items-center gap-4"><div className="h-10 w-10 rounded-xl bg-slate-100" /><div className="flex-1 space-y-2"><div className="h-3 w-52 max-w-full rounded bg-slate-100" /><div className="h-3 w-32 max-w-full rounded bg-slate-100" /></div><div className="h-7 w-20 rounded-full bg-slate-100" /></div>)}
+                    </div>
+                ) : businesses.length === 0 ? (
+                    <div className="px-6 py-16 text-center">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-200" aria-hidden="true">▦</div>
+                        <h2 className="mt-4 text-sm font-semibold text-slate-900">{search || status || verificationStatus || businessType || featured || category || location ? "No matching businesses" : "No businesses yet"}</h2>
+                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{search || status || verificationStatus || businessType || featured || category || location ? "Try changing your search or filters." : "Add your first business listing to start building the directory."}</p>
+                        {(search || status || verificationStatus || businessType || featured || category || location) ? (
+                            <button type="button" onClick={clearFilters} className={`${buttonClass} mt-4 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}>Clear filters</button>
+                        ) : (
+                            <button type="button" onClick={openCreateForm} className={`${buttonClass} mt-4 bg-blue-600 text-white hover:bg-blue-700`}>Add business</button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[980px] text-left">
+                            <thead className="bg-slate-50/80">
+                                <tr className="border-b border-slate-100">
+                                    <th scope="col" className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Business</th>
+                                    <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Category</th>
+                                    <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</th>
+                                    <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+                                    <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification</th>
+                                    <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Featured</th>
+                                    <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Added</th>
+                                    <th scope="col" className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {businesses.map((business) => (
+                                    <tr key={business._id} className="transition hover:bg-slate-50/70">
+                                        <td className="px-5 py-4">
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                {business.logo?.url ? <img src={business.logo.url} alt={business.logo.alt || ""} className="h-10 w-10 shrink-0 rounded-xl border border-slate-100 object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xs font-bold text-blue-700 ring-1 ring-blue-100">{initials(business.name)}</div>}
+                                                <div className="min-w-0">
+                                                    <p className="max-w-56 truncate text-xs font-semibold text-slate-800">{business.name || "Unnamed business"}</p>
+                                                    <p className="mt-1 max-w-56 truncate text-[11px] text-slate-400">/{business.slug || "no-slug"}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-xs text-slate-600">{business.category?.name || "Uncategorized"}</td>
+                                        <td className="px-4 py-4 text-xs text-slate-600">{business.location?.name || "Unknown"}</td>
+                                        <td className="px-4 py-4"><StatusBadge status={business.status} /></td>
+                                        <td className="px-4 py-4"><StatusBadge status={business.verificationStatus} /></td>
+                                        <td className="px-4 py-4">{business.isFeatured ? <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">Featured</span> : <span className="text-xs text-slate-400">—</span>}</td>
+                                        <td className="whitespace-nowrap px-4 py-4 text-right text-xs text-slate-500">{formatDate(business.createdAt)}</td>
+                                        <td className="px-5 py-4">
+                                            <div className="flex justify-end gap-2">
+                                                <button type="button" onClick={() => openEditForm(business)} disabled={Boolean(busyId)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50" aria-label={`Edit ${business.name}`}>{busyId === business._id ? "Loading…" : "Edit"}</button>
+                                                {business.status !== "archived" && <button type="button" onClick={() => archiveBusiness(business)} disabled={Boolean(busyId)} className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50" aria-label={`Archive ${business.name}`}>Archive</button>}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                <footer className="flex flex-col gap-3 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <p className="text-xs text-slate-500">{loading ? "Loading records…" : `Showing ${summary.total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, summary.total)} of ${summary.total.toLocaleString("en-IN")} businesses`}</p>
+                    <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={loading || page <= 1} className={`${buttonClass} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}>Previous</button>
+                        <span className="min-w-20 text-center text-xs font-medium text-slate-600">Page {page} of {Math.max(summary.totalPages, 1)}</span>
+                        <button type="button" onClick={() => setPage((current) => current + 1)} disabled={loading || page >= summary.totalPages} className={`${buttonClass} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}>Next</button>
+                    </div>
+                </footer>
+            </section>
+
+            {formOpen && (
+                <BusinessForm
+                    key={editingBusiness?._id || "new-business"}
+                    business={editingBusiness}
+                    onClose={() => { setFormOpen(false); setEditingBusiness(null); }}
+                    onSaved={handleSaved}
+                />
+            )}
         </div>
     );
 }
