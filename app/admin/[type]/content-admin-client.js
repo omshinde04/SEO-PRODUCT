@@ -165,7 +165,13 @@ export default function ContentAdminPage({ type }) {
     }, [isContent, page, pageSize, request, search, type]);
 
     useEffect(() => {
-        load();
+        let cancelled = false;
+        queueMicrotask(() => {
+            if (!cancelled) load();
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [load]);
 
     function resetContentEditor() {
@@ -366,6 +372,7 @@ export default function ContentAdminPage({ type }) {
 
     async function uploadMedia(event) {
         event.preventDefault();
+        const form = event.currentTarget;
 
         if (!file) {
             setError("Choose an image first.");
@@ -429,7 +436,7 @@ export default function ContentAdminPage({ type }) {
             setFile(null);
             setAlt("");
             setCaption("");
-            event.currentTarget.reset();
+            form.reset();
             setNotice("Image uploaded and added to the media library.");
             await load();
         } catch (uploadError) {
