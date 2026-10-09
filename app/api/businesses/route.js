@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import Business from "@/models/Business";
 import Category from "@/models/Category";
 import Location from "@/models/Location";
+import { getPrimaryLocationTerm } from "@/lib/business/location-search";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
 export const runtime = "nodejs";
@@ -148,7 +149,10 @@ export async function GET(request) {
         }
 
         if (locationText) {
-            const expression = new RegExp(escapeRegex(locationText), "i");
+            // Geocoder labels are hierarchical (e.g. "Ghoti, Igatpuri Subdistrict, Maharashtra, India").
+            // Match the most specific leading locality against admin-managed location records first.
+            const primaryLocation = getPrimaryLocationTerm(locationText);
+            const expression = new RegExp(escapeRegex(primaryLocation), "i");
             const matchingLocations = await Location.find({
                 status: "active",
                 $or: [
