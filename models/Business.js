@@ -325,6 +325,10 @@ businessSchema.index(
     { "address.city": 1, status: 1 },
     { name: "business_city_status" }
 );
+businessSchema.index(
+    { createdAt: -1, _id: -1 },
+    { name: "business_recent_created" }
+);
 
 const Business =
     mongoose.models.Business ||
