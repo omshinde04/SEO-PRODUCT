@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import GooglePlaceAutocomplete from "@/components/google-place-autocomplete";
 import { useEffect, useState } from "react";
 
 const TYPES = [
@@ -17,6 +18,7 @@ function imageFor(item) {
 export default function BusinessDirectory() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState(null);
   const [category, setCategory] = useState("");
   const [type, setType] = useState("");
   const [page, setPage] = useState(1);
@@ -47,7 +49,7 @@ export default function BusinessDirectory() {
       setError("");
       const params = new URLSearchParams({ page: String(page), limit: "12" });
       if (query.trim()) params.set("q", query.trim());
-      if (location) params.set("location", location);
+      if (location.trim()) params.set("locationText", selectedPlace?.searchText || location.trim());
       if (category) params.set("category", category);
       if (type) params.set("businessType", type);
       try {
@@ -62,18 +64,18 @@ export default function BusinessDirectory() {
       }
     }, 180);
     return () => { active = false; clearTimeout(timer); controller.abort(); };
-  }, [query, location, category, type, page]);
+  }, [query, location, selectedPlace, category, type, page]);
 
-  function reset() { setQuery(""); setLocation(""); setCategory(""); setType(""); setPage(1); }
+  function reset() { setQuery(""); setLocation(""); setSelectedPlace(null); setCategory(""); setType(""); setPage(1); }
 
   return (
     <main className="directory-page">
-      <header className="directory-header"><Link href="/" className="directory-back">← nearfolk</Link><Link href="/add-business" className="directory-add">List your business ↗</Link></header>
+      <header className="directory-header"><Link href="/" className="directory-back">← GaavConnect</Link><Link href="/add-business" className="directory-add">List your business ↗</Link></header>
       <section className="directory-intro"><span className="eyebrow">YOUR NEXT FAVOURITE PLACE IS OUT THERE</span><h1>Good places.<br /><em>Closer than ever.</em></h1><p>Explore local businesses and places worth knowing. Search for what you need, then narrow it down to your neighbourhood.</p></section>
       <section className="directory-layout">
         <aside className="filter-panel"><div className="filter-title"><strong>Make it yours</strong><button type="button" onClick={reset}>Reset</button></div>
           <label className="filter-label">SEARCH<input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Business, service, keyword…" /></label>
-          <label className="filter-label">LOCATION<select value={location} onChange={(e) => { setLocation(e.target.value); setPage(1); }}><option value="">Anywhere nearby</option>{locations.map((item) => <option key={item._id} value={item.slug}>{item.name}</option>)}</select></label>
+          <div className="filter-label"><GooglePlaceAutocomplete inputId="directory-location-search" label="LOCATION" value={location} onChange={(value) => { setLocation(value); setSelectedPlace(null); setPage(1); }} onSelect={(place) => { setSelectedPlace(place ? { ...place, searchText: place.address?.city || place.address?.area || place.address?.district || place.name || place.description } : null); setPage(1); }} placeholder="Search a town or village" /></div>
           <label className="filter-label">CATEGORY<select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }}><option value="">Every category</option>{categories.map((item) => <option key={item._id} value={item.slug}>{item.name}</option>)}</select></label>
           <div className="filter-label">KIND OF PLACE<div className="type-options">{TYPES.map(([value, label]) => <button type="button" className={type === value ? "type-option selected" : "type-option"} key={value} onClick={() => { setType(value); setPage(1); }}>{label}</button>)}</div></div>
           <div className="filter-footnote">Showing published listings with active categories and locations.</div>
@@ -88,7 +90,7 @@ export default function BusinessDirectory() {
           <div className="pagination-controls"><button type="button" disabled={page <= 1 || loading} onClick={() => { setPage((value) => value - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}>← Previous</button><span>{page}{data.pagination?.totalPages ? ` / ${Math.max(1, data.pagination.totalPages)}` : ""}</span><button type="button" disabled={loading || !data.pagination || page >= data.pagination.totalPages} onClick={() => { setPage((value) => value + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Next →</button></div>
         </div>
       </section>
-      <footer className="directory-footer"><Link href="/">nearfolk</Link><span>Good things, close by.</span></footer>
+      <footer className="directory-footer"><Link href="/">GaavConnect</Link><span>Good things, close by.</span></footer>
     </main>
   );
 }
