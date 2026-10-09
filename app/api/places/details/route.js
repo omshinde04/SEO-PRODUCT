@@ -19,12 +19,12 @@ export async function GET(request) {
   if (!apiKey) return apiError("Google location search is not configured yet. Add GOOGLE_MAPS_API_KEY to the server environment.", 503);
 
   try {
-    const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`;
+    const url = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`);
+    if (sessionToken) url.searchParams.set("sessionToken", sessionToken);
     const response = await fetch(url, {
       headers: {
         "X-Goog-Api-Key": apiKey,
         "X-Goog-FieldMask": "id,displayName,formattedAddress,location,addressComponents",
-        ...(sessionToken ? { "X-Goog-Session-Token": sessionToken } : {}),
       },
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
