@@ -16,10 +16,20 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isHttpUrl(value) {
+    if (!value) return true;
+    try {
+        const parsed = new URL(value);
+        return ["http:", "https:"].includes(parsed.protocol) && Boolean(parsed.hostname);
+    } catch {
+        return false;
+    }
+}
+
 const httpUrl = (maxLength = 2048) =>
     z.string().trim().max(maxLength).refine(
-        (value) => !value || /^https?:\/\//i.test(value),
-        "URL must use HTTP or HTTPS."
+        isHttpUrl,
+        "URL must be a valid HTTP or HTTPS URL."
     );
 
 const eventSchema = z
