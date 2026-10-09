@@ -1,0 +1,11 @@
+import PublicInfoPage from "@/components/public-info-page";
+import { getStaticPageMetadata } from "@/lib/seo/static-pages";
+export const generateMetadata = () => getStaticPageMetadata("/cookies");
+export default function CookiesPage(){return <PublicInfoPage eyebrow="COOKIE & STORAGE POLICY" title="Simple choices. No" highlight="surprises." description="GaavConnect provides a preference panel so you can decide how optional browser storage should be treated. The current preference interface uses local storage and does not itself load analytics or marketing trackers." breadcrumbs={[{label:"Cookie policy"}]} sections={[
+{title:"What the preference panel stores",body:"When you save your choice, GaavConnect stores a small preference record in your browser’s local storage. It records whether optional analytics or marketing preferences were selected and when the choice was saved. It is not a server-side account setting."},
+{title:"Essential storage",body:"Essential storage is treated as always on because it is needed to remember the preference interface state. Clearing browser storage may cause the banner to appear again."},
+{title:"Optional analytics and marketing",body:"These preference categories are available for future integrations, but the preference panel does not activate tracking code. Optional trackers should not be added unless the site owner has implemented the relevant technology, disclosures and consent behaviour."},
+{title:"Change or withdraw your choice",body:"Use “Cookie settings” in the website footer to reopen the preference panel and save a different choice. You can also clear site data in your browser settings."},
+{title:"Third-party services",body:"If the website later adds analytics, advertising, embedded media or other third-party tools, this policy should be updated to identify those services and explain their storage, purpose and controls before they are enabled."},
+{title:"Questions",body:"For questions about browser preferences or website data handling, use the contact guidance. This page describes the current preference interface and is not a substitute for jurisdiction-specific legal advice.",link:{href:"/contact",label:"Contact guidance"}}
+]} />}
