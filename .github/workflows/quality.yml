@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - fix/admin-panel-shell-and-businesses
+      - feat/v1-admin-content-seo
 
 permissions:
   contents: read
