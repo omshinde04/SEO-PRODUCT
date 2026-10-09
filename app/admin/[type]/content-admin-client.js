@@ -98,6 +98,7 @@ export default function ContentAdminPage({ type }) {
     const [template, setTemplate] = useState(blankTemplate);
     const [editingTemplate, setEditingTemplate] = useState("");
     const [file, setFile] = useState(null);
+    const [uploadPurpose, setUploadPurpose] = useState("place-cover");
     const [alt, setAlt] = useState("");
     const [caption, setCaption] = useState("");
 
@@ -405,7 +406,7 @@ export default function ContentAdminPage({ type }) {
 
             const signed = await request("/api/admin/uploads/signature", {
                 method: "POST",
-                body: JSON.stringify({ purpose: "place-cover" }),
+                body: JSON.stringify({ purpose: uploadPurpose }),
             });
             const upload = signed.upload;
             const formData = new FormData();
@@ -446,6 +447,7 @@ export default function ContentAdminPage({ type }) {
             });
 
             setFile(null);
+            setUploadPurpose("place-cover");
             setAlt("");
             setCaption("");
             form.reset();
@@ -680,6 +682,16 @@ export default function ContentAdminPage({ type }) {
                     <h2 className="md:col-span-2 text-lg font-semibold">Upload image to media library</h2>
                     <Field label="Image file (JPG, PNG, WebP, AVIF; max 5 MB)">
                         <input required type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => setFile(event.target.files?.[0] || null)} className={inputClass} />
+                    </Field>
+                    <Field label="Upload purpose">
+                        <select value={uploadPurpose} onChange={(event) => setUploadPurpose(event.target.value)} className={inputClass}>
+                            <option value="business-logo">Business logo</option>
+                            <option value="business-cover">Business cover</option>
+                            <option value="business-gallery">Business gallery</option>
+                            <option value="location-cover">Location cover</option>
+                            <option value="place-cover">Place cover</option>
+                            <option value="place-gallery">Place gallery</option>
+                        </select>
                     </Field>
                     <Field label="Alt text">
                         <input value={alt} maxLength={200} onChange={(event) => setAlt(event.target.value)} className={inputClass} placeholder="Describe the image" />
