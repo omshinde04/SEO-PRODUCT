@@ -21,6 +21,7 @@ export default function PublicDetail({ kind, slug }) {
   const title=item?.name|| (isBusiness?"Local business":"Discover locally");
   const description=item?.description||item?.tagline||"Discover trusted local places, useful services and people worth knowing.";
   const image=imageOf(item);
+  const galleryImages = Array.isArray(item?.images) ? item.images.filter((entry) => entry?.url && (entry.url.startsWith("https://") || entry.url.startsWith("http://"))) : [];
   return <main className="directory-page">
     <header className="directory-header"><Link href="/" className="directory-back">← GaavConnect</Link><Link href="/add-business" className="directory-add">List your business ↗</Link></header>
     {loading&&!item ? <section className="detail-state"><span className="eyebrow">JUST A MOMENT</span><h1>Finding the good stuff…</h1><p>Loading the details for this local page.</p></section> : error ? <section className="detail-state"><span className="eyebrow">WE COULDN’T FIND THAT</span><h1>Let’s find another way.</h1><p>{error}</p><Link className="detail-primary" href={isBusiness?"/businesses":kind==="categories"?"/categories":"/locations"}>Browse {isBusiness?"all businesses":kind}</Link></section> : item ? <>
