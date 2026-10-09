@@ -25,7 +25,7 @@ export default async function LocationsPage() {
   try {
     await connectDB();
     locations = await Location.find({ status: "active", "seo.noIndex": { $ne: true } })
-      .select("name slug description type sortOrder")
+      .select("name slug description type coverImage sortOrder")
       .sort({ sortOrder: 1, name: 1 })
       .limit(100)
       .lean()
@@ -59,7 +59,37 @@ export default async function LocationsPage() {
         <h1>Explore local areas and villages</h1>
         <p>Find local businesses and services across Ghoti, Igatpuri, Nashik and surrounding villages in Maharashtra.</p>
       </section>
-      {locations.length ? <section className="detail-listing-section"><div className="collection-grid">{locations.map((item) => <Link className="collection-card" key={item._id} href={`/locations/${item.slug}`}><span className="collection-symbol collection-symbol-2">⌖</span><span className="collection-card-copy"><strong>{item.name}</strong><small>{item.description || `Discover local businesses in ${item.name}.`}</small></span><span className="collection-arrow">↗</span></Link>)}</div></section> : <section className="detail-state"><h2>Local areas are being added</h2><p>Check back soon, or browse the current business directory.</p><Link className="detail-primary" href="/businesses">Browse businesses ↗</Link></section>}
+      {locations.length ? (
+        <section className="detail-listing-section">
+          <div className="collection-grid">
+            {locations.map((item) => (
+              <Link className="collection-card" key={item._id} href={`/locations/${item.slug}`}>
+                {item.coverImage?.url ? (
+                  <img
+                    src={item.coverImage.url}
+                    alt={item.coverImage.alt || item.name}
+                    className="collection-card-thumbnail"
+                    style={{ width: "48px", height: "48px", borderRadius: "12px", objectFit: "cover", flexShrink: 0 }}
+                  />
+                ) : (
+                  <span className="collection-symbol collection-symbol-2">⌖</span>
+                )}
+                <span className="collection-card-copy">
+                  <strong>{item.name}</strong>
+                  <small>{item.description || `Discover local businesses in ${item.name}.`}</small>
+                </span>
+                <span className="collection-arrow">↗</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="detail-state">
+          <h2>Local areas are being added</h2>
+          <p>Check back soon, or browse the current business directory.</p>
+          <Link className="detail-primary" href="/businesses">Browse businesses ↗</Link>
+        </section>
+      )}
     </main>
   );
 }

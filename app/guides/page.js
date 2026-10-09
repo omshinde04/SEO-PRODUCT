@@ -90,6 +90,16 @@ export default async function GuidesPage() {
           <div className="guide-index-grid" style={{ marginBottom: "40px" }}>
             {dynamicGuides.map((guide, idx) => (
               <article className="guide-index-card" key={guide._id.toString()}>
+                {guide.coverImage?.url && (
+                  <div style={{ height: "160px", margin: "-1.5rem -1.5rem 1rem -1.5rem", overflow: "hidden", borderRadius: "14px 14px 0 0" }}>
+                    <img
+                      src={guide.coverImage.url}
+                      alt={guide.coverImage.alt || guide.title}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: "14px", fontWeight: "700", color: "#2f5233" }}>
                     GUIDE #{String(idx + 1).padStart(2, "0")}

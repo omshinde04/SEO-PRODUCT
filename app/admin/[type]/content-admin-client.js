@@ -101,6 +101,8 @@ export default function ContentAdminPage({ type }) {
     const [uploadPurpose, setUploadPurpose] = useState("place-cover");
     const [alt, setAlt] = useState("");
     const [caption, setCaption] = useState("");
+    const [coverUploading, setCoverUploading] = useState(false);
+    const [seoUploading, setSeoUploading] = useState("");
 
     const isContent = ["places", "guides", "events"].includes(type);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -460,6 +462,166 @@ export default function ContentAdminPage({ type }) {
         }
     }
 
+    async function uploadCoverImage(selectedFile) {
+        if (!selectedFile) return;
+
+        if (!/^image\/(jpeg|png|webp|avif)$/.test(selectedFile.type)) {
+            setError("Only JPG, PNG, WebP or AVIF images are allowed.");
+            return;
+        }
+        if (selectedFile.size > 5 * 1024 * 1024) {
+            setError("Maximum image size is 5 MB.");
+            return;
+        }
+
+        setCoverUploading(true);
+        setError("");
+        setNotice("");
+
+        const purpose = type === "guides" ? "guide-cover" : type === "events" ? "event-cover" : "place-cover";
+
+        try {
+            const signed = await request("/api/admin/uploads/signature", {
+                method: "POST",
+                body: JSON.stringify({ purpose }),
+            });
+            const upload = signed.upload;
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            formData.append("api_key", upload.apiKey);
+            formData.append("timestamp", String(upload.timestamp));
+            formData.append("signature", upload.signature);
+            formData.append("folder", upload.folder);
+            formData.append("public_id", upload.publicId);
+            formData.append("upload_preset", upload.uploadPreset);
+
+            const response = await fetch(upload.uploadUrl, {
+                method: "POST",
+                body: formData,
+            });
+            const asset = await response.json();
+
+            if (!response.ok) {
+                throw new Error(asset.error?.message || "Cloud image upload failed.");
+            }
+            if (!asset.secure_url || !asset.public_id) {
+                throw new Error("Cloud image provider returned incomplete asset details.");
+            }
+
+            const autoAlt = selectedFile.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").slice(0, 200);
+            setCoverImageUrl(asset.secure_url);
+            setCoverImagePublicId(asset.public_id);
+            if (!coverImageAlt.trim()) {
+                setCoverImageAlt(autoAlt);
+            }
+
+            // Register in media library asynchronously
+            try {
+                await request("/api/admin/content/media", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        url: asset.secure_url,
+                        publicId: asset.public_id,
+                        folder: asset.folder || upload.folder,
+                        alt: coverImageAlt.trim() || autoAlt,
+                        caption: `${type.slice(0, -1)} cover: ${title || selectedFile.name}`,
+                        mimeType: (asset.resource_type || "image") + "/" + (asset.format || "jpeg"),
+                        bytes: asset.bytes || selectedFile.size,
+                        width: asset.width || null,
+                        height: asset.height || null,
+                    }),
+                });
+                const freshMedia = await request("/api/admin/content/media?limit=100");
+                setMediaItems(freshMedia.items || []);
+            } catch {
+                // Non-blocking
+            }
+
+            setNotice("Cover image uploaded and attached successfully!");
+        } catch (uploadError) {
+            setError(uploadError.message || "Failed to upload cover image.");
+        } finally {
+            setCoverUploading(false);
+        }
+    }
+
+    async function uploadSeoImage(selectedFile, field) {
+        if (!selectedFile) return;
+
+        if (!/^image\/(jpeg|png|webp|avif)$/.test(selectedFile.type)) {
+            setError("Only JPG, PNG, WebP or AVIF images are allowed.");
+            return;
+        }
+        if (selectedFile.size > 5 * 1024 * 1024) {
+            setError("Maximum image size is 5 MB.");
+            return;
+        }
+
+        setSeoUploading(field);
+        setError("");
+        setNotice("");
+
+        const purpose = field === "organizationLogo" ? "business-logo" : "seo-image";
+
+        try {
+            const signed = await request("/api/admin/uploads/signature", {
+                method: "POST",
+                body: JSON.stringify({ purpose }),
+            });
+            const upload = signed.upload;
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            formData.append("api_key", upload.apiKey);
+            formData.append("timestamp", String(upload.timestamp));
+            formData.append("signature", upload.signature);
+            formData.append("folder", upload.folder);
+            formData.append("public_id", upload.publicId);
+            formData.append("upload_preset", upload.uploadPreset);
+
+            const response = await fetch(upload.uploadUrl, {
+                method: "POST",
+                body: formData,
+            });
+            const asset = await response.json();
+
+            if (!response.ok) {
+                throw new Error(asset.error?.message || "Cloud image upload failed.");
+            }
+            if (!asset.secure_url) {
+                throw new Error("Cloud image provider returned incomplete asset details.");
+            }
+
+            setSeo((current) => ({ ...current, [field]: asset.secure_url }));
+
+            try {
+                await request("/api/admin/content/media", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        url: asset.secure_url,
+                        publicId: asset.public_id,
+                        folder: asset.folder || upload.folder,
+                        alt: field === "organizationLogo" ? "Organization Logo" : "SEO Share Image",
+                        caption: `SEO asset: ${field}`,
+                        mimeType: (asset.resource_type || "image") + "/" + (asset.format || "jpeg"),
+                        bytes: asset.bytes || selectedFile.size,
+                        width: asset.width || null,
+                        height: asset.height || null,
+                    }),
+                });
+                const freshMedia = await request("/api/admin/content/media?limit=100");
+                setMediaItems(freshMedia.items || []);
+            } catch {
+                // Non-blocking
+            }
+
+            setNotice(`${field === "organizationLogo" ? "Organization logo" : "Social share image"} uploaded successfully!`);
+        } catch (uploadError) {
+            setError(uploadError.message || "Failed to upload image.");
+        } finally {
+            setSeoUploading("");
+        }
+    }
+
     function searchRecords(event) {
         event.preventDefault();
         setPage(1);
@@ -540,34 +702,128 @@ export default function ContentAdminPage({ type }) {
                             ))}
                         </select>
                     </Field>
-                    <Field label="Select a cover image from the media library">
-                        <select
-                            value={coverImagePublicId}
-                            onChange={(event) => {
-                                const selected = mediaItems.find((item) => item.publicId === event.target.value);
-                                setCoverImagePublicId(selected?.publicId || "");
-                                setCoverImageUrl(selected?.url || "");
-                                setCoverImageAlt(selected?.alt || "");
-                            }}
-                            className={inputClass}
-                        >
-                            <option value="">Choose an uploaded image (optional)</option>
-                            {mediaItems.map((media) => (
-                                <option key={media._id} value={media.publicId}>
-                                    {media.alt || media.caption || media.publicId}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
-                    <Field label="Cover image URL">
-                        <input type="url" maxLength={2048} value={coverImageUrl} onChange={(event) => setCoverImageUrl(event.target.value)} className={inputClass} placeholder="https://..." />
-                    </Field>
-                    <Field label="Cover image public ID">
-                        <input maxLength={300} value={coverImagePublicId} onChange={(event) => setCoverImagePublicId(event.target.value)} className={inputClass} />
-                    </Field>
-                    <Field label="Cover image alt text">
-                        <input maxLength={200} value={coverImageAlt} onChange={(event) => setCoverImageAlt(event.target.value)} className={inputClass} />
-                    </Field>
+                    <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900">Cover image</h3>
+                                <p className="text-xs text-slate-500">
+                                    Upload directly to Cloudinary or select an image from your media library.
+                                </p>
+                            </div>
+                            {coverImageUrl && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCoverImageUrl("");
+                                        setCoverImagePublicId("");
+                                        setCoverImageAlt("");
+                                    }}
+                                    className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline"
+                                >
+                                    Remove image
+                                </button>
+                            )}
+                        </div>
+
+                        {coverImageUrl ? (
+                            <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                                <img
+                                    src={coverImageUrl}
+                                    alt={coverImageAlt || "Cover preview"}
+                                    className="h-24 w-36 rounded-lg object-cover border border-slate-200 bg-slate-100"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+                                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" /> Image attached & verified
+                                    </p>
+                                    <p className="mt-1 truncate text-xs text-slate-700 font-mono" title={coverImageUrl}>
+                                        {coverImageUrl}
+                                    </p>
+                                    {coverImagePublicId && (
+                                        <p className="mt-0.5 text-[11px] text-slate-400 font-mono">
+                                            Public ID: {coverImagePublicId}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ) : null}
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Upload new cover image (JPG, PNG, WebP, AVIF &le; 5MB)
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/avif"
+                                    disabled={coverUploading}
+                                    onChange={(event) => {
+                                        const uploadedFile = event.target.files?.[0];
+                                        if (uploadedFile) {
+                                            uploadCoverImage(uploadedFile);
+                                            event.target.value = "";
+                                        }
+                                    }}
+                                    className={inputClass}
+                                />
+                                {coverUploading && (
+                                    <p className="mt-1.5 text-xs text-blue-600 animate-pulse font-medium">
+                                        Uploading directly to Cloudinary…
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Or choose from media library
+                                </label>
+                                <select
+                                    value={coverImagePublicId}
+                                    onChange={(event) => {
+                                        const selected = mediaItems.find((item) => item.publicId === event.target.value);
+                                        setCoverImagePublicId(selected?.publicId || "");
+                                        setCoverImageUrl(selected?.url || "");
+                                        if (selected?.alt) setCoverImageAlt(selected.alt);
+                                    }}
+                                    className={inputClass}
+                                >
+                                    <option value="">Choose an existing media item…</option>
+                                    {mediaItems.map((media) => (
+                                        <option key={media._id} value={media.publicId}>
+                                            {media.alt || media.caption || media.publicId}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Cover image alt text
+                                </label>
+                                <input
+                                    maxLength={200}
+                                    value={coverImageAlt}
+                                    onChange={(event) => setCoverImageAlt(event.target.value)}
+                                    placeholder="Describe image for accessibility"
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Direct cover image URL
+                                </label>
+                                <input
+                                    type="url"
+                                    maxLength={2048}
+                                    value={coverImageUrl}
+                                    onChange={(event) => setCoverImageUrl(event.target.value)}
+                                    placeholder="https://..."
+                                    className={inputClass}
+                                />
+                            </div>
+                        </div>
+                    </div>
 
                     {type === "events" && (
                         <>
@@ -622,14 +878,62 @@ export default function ContentAdminPage({ type }) {
                         ["defaultTitle", "Default page title"],
                         ["titleTemplate", "Title template (use %s)"],
                         ["defaultDescription", "Default meta description"],
-                        ["defaultImage", "Default social/share image URL"],
                         ["organizationName", "Organization name"],
-                        ["organizationLogo", "Organization logo URL"],
                     ].map(([key, label]) => (
                         <Field key={key} label={label}>
-                            <input type={["siteUrl", "defaultImage", "organizationLogo"].includes(key) ? "url" : "text"} className={inputClass} value={seo[key] || ""} maxLength={key === "defaultDescription" ? 170 : key === "defaultTitle" ? 70 : 2048} onChange={(event) => setSeo((current) => ({ ...current, [key]: event.target.value }))} />
+                            <input type={key === "siteUrl" ? "url" : "text"} className={inputClass} value={seo[key] || ""} maxLength={key === "defaultDescription" ? 170 : key === "defaultTitle" ? 70 : 2048} onChange={(event) => setSeo((current) => ({ ...current, [key]: event.target.value }))} />
                         </Field>
                     ))}
+
+                    <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <h3 className="text-sm font-bold text-slate-900 mb-1">Default Social Share Image</h3>
+                        <p className="text-xs text-slate-500 mb-3">Shown on WhatsApp, Twitter/X, and social previews when a specific page image is not set.</p>
+                        {seo.defaultImage ? (
+                            <div className="mb-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2">
+                                <img src={seo.defaultImage} alt="SEO Share Preview" className="h-16 w-28 rounded object-cover border border-slate-200 bg-slate-100" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="truncate text-xs font-mono text-slate-600">{seo.defaultImage}</p>
+                                    <button type="button" onClick={() => setSeo((c) => ({ ...c, defaultImage: "" }))} className="mt-1 text-xs text-red-600 hover:underline">Remove image</button>
+                                </div>
+                            </div>
+                        ) : null}
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">Upload share image file</label>
+                                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={Boolean(seoUploading)} onChange={(e) => { const f = e.target.files?.[0]; if (f) { uploadSeoImage(f, "defaultImage"); e.target.value = ""; } }} className={inputClass} />
+                                {seoUploading === "defaultImage" && <p className="mt-1 text-xs text-blue-600 animate-pulse font-medium">Uploading to Cloudinary…</p>}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">Or paste image URL</label>
+                                <input type="url" value={seo.defaultImage || ""} onChange={(e) => setSeo((c) => ({ ...c, defaultImage: e.target.value }))} placeholder="https://..." className={inputClass} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <h3 className="text-sm font-bold text-slate-900 mb-1">Organization Logo</h3>
+                        <p className="text-xs text-slate-500 mb-3">Used for structured Schema.org organization markup.</p>
+                        {seo.organizationLogo ? (
+                            <div className="mb-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2">
+                                <img src={seo.organizationLogo} alt="Logo Preview" className="h-14 w-14 rounded object-contain border border-slate-200 bg-slate-100" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="truncate text-xs font-mono text-slate-600">{seo.organizationLogo}</p>
+                                    <button type="button" onClick={() => setSeo((c) => ({ ...c, organizationLogo: "" }))} className="mt-1 text-xs text-red-600 hover:underline">Remove logo</button>
+                                </div>
+                            </div>
+                        ) : null}
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">Upload logo file</label>
+                                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={Boolean(seoUploading)} onChange={(e) => { const f = e.target.files?.[0]; if (f) { uploadSeoImage(f, "organizationLogo"); e.target.value = ""; } }} className={inputClass} />
+                                {seoUploading === "organizationLogo" && <p className="mt-1 text-xs text-blue-600 animate-pulse font-medium">Uploading to Cloudinary…</p>}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">Or paste logo URL</label>
+                                <input type="url" value={seo.organizationLogo || ""} onChange={(e) => setSeo((c) => ({ ...c, organizationLogo: e.target.value }))} placeholder="https://..." className={inputClass} />
+                            </div>
+                        </div>
+                    </div>
                     <label className="flex items-center gap-2 text-sm">
                         <input type="checkbox" checked={Boolean(seo.robotsIndex)} onChange={(event) => setSeo((current) => ({ ...current, robotsIndex: event.target.checked }))} />
                         Allow search engine indexing
@@ -685,12 +989,15 @@ export default function ContentAdminPage({ type }) {
                     </Field>
                     <Field label="Upload purpose">
                         <select value={uploadPurpose} onChange={(event) => setUploadPurpose(event.target.value)} className={inputClass}>
-                            <option value="business-logo">Business logo</option>
-                            <option value="business-cover">Business cover</option>
-                            <option value="business-gallery">Business gallery</option>
-                            <option value="location-cover">Location cover</option>
                             <option value="place-cover">Place cover</option>
-                            <option value="place-gallery">Place gallery</option>
+                            <option value="guide-cover">Guide cover</option>
+                            <option value="event-cover">Event cover</option>
+                            <option value="location-cover">Location cover</option>
+                            <option value="business-cover">Business cover</option>
+                            <option value="business-logo">Business logo</option>
+                            <option value="business-gallery">Business gallery</option>
+                            <option value="media-library">General media library</option>
+                            <option value="seo-image">SEO / Social share image</option>
                         </select>
                     </Field>
                     <Field label="Alt text">
@@ -730,13 +1037,21 @@ export default function ContentAdminPage({ type }) {
                     <div className="divide-y">
                         {items.map((item) => (
                             <article key={item._id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                                <div className="min-w-0 flex-1">
-                                    <p className="break-words font-semibold text-slate-800">
-                                        {item.title || item.businessName || item.publicId || item.siteName || item.entityType || "Untitled record"}
-                                    </p>
-                                    <p className="mt-1 break-all text-xs text-slate-500">
-                                        {item.slug || item.email || item.folder || item.status || item.siteUrl || ""}
-                                    </p>
+                                <div className="min-w-0 flex-1 flex items-start gap-3">
+                                    {(item.coverImage?.url || item.url) && (
+                                        <img
+                                            src={item.coverImage?.url || item.url}
+                                            alt=""
+                                            className="h-12 w-16 shrink-0 rounded-lg object-cover border border-slate-200 bg-slate-100"
+                                        />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                        <p className="break-words font-semibold text-slate-800">
+                                            {item.title || item.businessName || item.publicId || item.siteName || item.entityType || "Untitled record"}
+                                        </p>
+                                        <p className="mt-1 break-all text-xs text-slate-500">
+                                            {item.slug || item.email || item.folder || item.status || item.siteUrl || ""}
+                                        </p>
 
                                     {type === "media" && (
                                         <>
@@ -802,6 +1117,7 @@ export default function ContentAdminPage({ type }) {
                                         </p>
                                     )}
                                 </div>
+                            </div>
 
                                 <div className="flex flex-wrap gap-2">
                                     {item.status && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs">{item.status}</span>}

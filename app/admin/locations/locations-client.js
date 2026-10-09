@@ -103,6 +103,7 @@ export default function LocationsClient() {
     const [busyId, setBusyId] = useState("");
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
+    const [coverUploading, setCoverUploading] = useState(false);
 
     const totalPages = Math.max(1, pagination.totalPages || Math.ceil(pagination.total / PAGE_SIZE));
     const locationNames = useMemo(
@@ -306,6 +307,96 @@ export default function LocationsClient() {
         }
     }
 
+    async function uploadCoverImage(selectedFile) {
+        if (!selectedFile) return;
+
+        if (!/^image\/(jpeg|png|webp|avif)$/.test(selectedFile.type)) {
+            setError("Only JPG, PNG, WebP or AVIF images are allowed.");
+            return;
+        }
+        if (selectedFile.size > 5 * 1024 * 1024) {
+            setError("Maximum image size is 5 MB.");
+            return;
+        }
+
+        setCoverUploading(true);
+        setError("");
+        setNotice("");
+
+        try {
+            const sigRes = await fetch("/api/admin/uploads/signature", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ purpose: "location-cover" }),
+            });
+            const sigData = await sigRes.json();
+            if (!sigRes.ok || !sigData.success) {
+                throw new Error(sigData.message || "Failed to sign upload request.");
+            }
+
+            const upload = sigData.upload;
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            formData.append("api_key", upload.apiKey);
+            formData.append("timestamp", String(upload.timestamp));
+            formData.append("signature", upload.signature);
+            formData.append("folder", upload.folder);
+            formData.append("public_id", upload.publicId);
+            formData.append("upload_preset", upload.uploadPreset);
+
+            const uploadRes = await fetch(upload.uploadUrl, {
+                method: "POST",
+                body: formData,
+            });
+            const asset = await uploadRes.json();
+            if (!uploadRes.ok || !asset.secure_url || !asset.public_id) {
+                throw new Error(asset.error?.message || "Cloud image upload failed.");
+            }
+
+            const autoAlt = selectedFile.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").slice(0, 200);
+            setForm((current) => ({
+                ...current,
+                coverImage: {
+                    url: asset.secure_url,
+                    publicId: asset.public_id,
+                    alt: current.coverImage.alt.trim() || autoAlt,
+                },
+            }));
+
+            // Register in media library asynchronously
+            try {
+                await fetch("/api/admin/content/media", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        url: asset.secure_url,
+                        publicId: asset.public_id,
+                        folder: asset.folder || upload.folder,
+                        alt: form.coverImage.alt.trim() || autoAlt,
+                        caption: `Location cover: ${form.name || selectedFile.name}`,
+                        mimeType: (asset.resource_type || "image") + "/" + (asset.format || "jpeg"),
+                        bytes: asset.bytes || selectedFile.size,
+                        width: asset.width || null,
+                        height: asset.height || null,
+                    }),
+                });
+                const mediaRes = await fetch("/api/admin/content/media?limit=100", { credentials: "same-origin" });
+                const mediaData = await mediaRes.json();
+                if (mediaData.items) setMediaItems(mediaData.items);
+            } catch {
+                // Non-blocking
+            }
+
+            setNotice("Location cover image uploaded successfully!");
+        } catch (err) {
+            setError(err.message || "Image upload failed.");
+        } finally {
+            setCoverUploading(false);
+        }
+    }
+
     async function toggleStatus(item) {
         const activating = item.status === "inactive";
         if (!activating && !window.confirm("Deactivate this location? Locations referenced by businesses or active child locations cannot be deactivated.")) {
@@ -436,31 +527,139 @@ export default function LocationsClient() {
                     <Field label="Description">
                         <textarea rows={3} maxLength={3000} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className={inputClass} />
                     </Field>
-                    <Field label="Select a cover image from media library">
-                        <select value={form.coverImage.publicId} disabled={optionsLoading} onChange={(event) => {
-                            const media = mediaItems.find((item) => item.publicId === event.target.value);
-                            setForm((current) => ({
-                                ...current,
-                                coverImage: {
-                                    url: media?.url || "",
-                                    publicId: media?.publicId || "",
-                                    alt: media?.alt || "",
-                                },
-                            }));
-                        }} className={inputClass}>
-                            <option value="">Choose image (optional)</option>
-                            {mediaItems.map((media) => <option key={media._id} value={media.publicId}>{media.alt || media.caption || media.publicId}</option>)}
-                        </select>
-                    </Field>
-                    <Field label="Cover image URL">
-                        <input type="url" maxLength={2048} value={form.coverImage.url} onChange={(event) => setForm((current) => ({ ...current, coverImage: { ...current.coverImage, url: event.target.value } }))} className={inputClass} placeholder="https://..." />
-                    </Field>
-                    <Field label="Cover image public ID">
-                        <input maxLength={300} value={form.coverImage.publicId} onChange={(event) => setForm((current) => ({ ...current, coverImage: { ...current.coverImage, publicId: event.target.value } }))} className={inputClass} />
-                    </Field>
-                    <Field label="Cover image alt text">
-                        <input maxLength={200} value={form.coverImage.alt} onChange={(event) => setForm((current) => ({ ...current, coverImage: { ...current.coverImage, alt: event.target.value } }))} className={inputClass} />
-                    </Field>
+                    <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900">Cover image</h3>
+                                <p className="text-xs text-slate-500">
+                                    Upload directly to Cloudinary or select from existing media.
+                                </p>
+                            </div>
+                            {form.coverImage.url && (
+                                <button
+                                    type="button"
+                                    onClick={() => setForm((current) => ({
+                                        ...current,
+                                        coverImage: { url: "", publicId: "", alt: "" },
+                                    }))}
+                                    className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline"
+                                >
+                                    Remove image
+                                </button>
+                            )}
+                        </div>
+
+                        {form.coverImage.url ? (
+                            <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                                <img
+                                    src={form.coverImage.url}
+                                    alt={form.coverImage.alt || "Location preview"}
+                                    className="h-24 w-36 rounded-lg object-cover border border-slate-200 bg-slate-100"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+                                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" /> Image attached & verified
+                                    </p>
+                                    <p className="mt-1 truncate text-xs text-slate-700 font-mono" title={form.coverImage.url}>
+                                        {form.coverImage.url}
+                                    </p>
+                                    {form.coverImage.publicId && (
+                                        <p className="mt-0.5 text-[11px] text-slate-400 font-mono">
+                                            Public ID: {form.coverImage.publicId}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ) : null}
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Upload new cover image (JPG, PNG, WebP, AVIF &le; 5MB)
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/avif"
+                                    disabled={coverUploading}
+                                    onChange={(event) => {
+                                        const uploadedFile = event.target.files?.[0];
+                                        if (uploadedFile) {
+                                            uploadCoverImage(uploadedFile);
+                                            event.target.value = "";
+                                        }
+                                    }}
+                                    className={inputClass}
+                                />
+                                {coverUploading && (
+                                    <p className="mt-1.5 text-xs text-blue-600 animate-pulse font-medium">
+                                        Uploading to Cloudinary…
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Or choose from media library
+                                </label>
+                                <select
+                                    value={form.coverImage.publicId}
+                                    disabled={optionsLoading}
+                                    onChange={(event) => {
+                                        const media = mediaItems.find((item) => item.publicId === event.target.value);
+                                        setForm((current) => ({
+                                            ...current,
+                                            coverImage: {
+                                                url: media?.url || "",
+                                                publicId: media?.publicId || "",
+                                                alt: media?.alt || "",
+                                            },
+                                        }));
+                                    }}
+                                    className={inputClass}
+                                >
+                                    <option value="">Choose image (optional)</option>
+                                    {mediaItems.map((media) => (
+                                        <option key={media._id} value={media.publicId}>
+                                            {media.alt || media.caption || media.publicId}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Cover image alt text
+                                </label>
+                                <input
+                                    maxLength={200}
+                                    value={form.coverImage.alt}
+                                    onChange={(event) => setForm((current) => ({
+                                        ...current,
+                                        coverImage: { ...current.coverImage, alt: event.target.value },
+                                    }))}
+                                    placeholder="Describe image for accessibility"
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Direct cover image URL
+                                </label>
+                                <input
+                                    type="url"
+                                    maxLength={2048}
+                                    value={form.coverImage.url}
+                                    onChange={(event) => setForm((current) => ({
+                                        ...current,
+                                        coverImage: { ...current.coverImage, url: event.target.value },
+                                    }))}
+                                    placeholder="https://..."
+                                    className={inputClass}
+                                />
+                            </div>
+                        </div>
+                    </div>
                     <Field label="SEO title">
                         <input maxLength={70} value={form.seo.title} onChange={(event) => setForm((current) => ({ ...current, seo: { ...current.seo, title: event.target.value } }))} className={inputClass} />
                     </Field>
@@ -530,9 +729,20 @@ export default function LocationsClient() {
                                     return (
                                         <tr key={item._id} className="align-top hover:bg-slate-50/70">
                                             <td className="px-5 py-4">
-                                                <p className="font-semibold text-slate-900">{item.name}</p>
-                                                <p className="mt-1 text-xs text-slate-500">/{item.slug}</p>
-                                                <p className="mt-1 text-xs text-slate-500">{[item.address?.district, item.address?.state, item.address?.country].filter(Boolean).join(", ")}</p>
+                                                <div className="flex items-start gap-3">
+                                                    {item.coverImage?.url && (
+                                                        <img
+                                                            src={item.coverImage.url}
+                                                            alt=""
+                                                            className="h-10 w-14 shrink-0 rounded-md object-cover border border-slate-200 bg-slate-100"
+                                                        />
+                                                    )}
+                                                    <div>
+                                                        <p className="font-semibold text-slate-900">{item.name}</p>
+                                                        <p className="mt-1 text-xs text-slate-500">/{item.slug}</p>
+                                                        <p className="mt-1 text-xs text-slate-500">{[item.address?.district, item.address?.state, item.address?.country].filter(Boolean).join(", ")}</p>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td className="px-5 py-4 capitalize text-slate-600">{item.type}</td>
                                             <td className="px-5 py-4 text-slate-600">{parentName}</td>

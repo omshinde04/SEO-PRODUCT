@@ -78,6 +78,7 @@ async function getGuide(slug) {
       title: item.title,
       description: item.summary || item.title,
       location: item.location?.name || null,
+      coverImage: item.coverImage || null,
       sections: parseBodyToSections(item.body),
     };
   } catch {
@@ -94,8 +95,16 @@ export async function generateMetadata({ params }) {
     title: { absolute: title },
     description: guide.description,
     alternates: { canonical: `/guides/${slug}` },
-    openGraph: { type: "article", siteName: "GaavConnect", title, description: guide.description, url: `/guides/${slug}`, locale: "en_IN" },
-    twitter: { card: "summary", title, description: guide.description },
+    openGraph: {
+      type: "article",
+      siteName: "GaavConnect",
+      title,
+      description: guide.description,
+      url: `/guides/${slug}`,
+      locale: "en_IN",
+      ...(guide.coverImage?.url ? { images: [{ url: guide.coverImage.url, alt: guide.title }] } : {}),
+    },
+    twitter: { card: "summary_large_image", title, description: guide.description },
   };
 }
 
@@ -108,6 +117,7 @@ export default async function GuideDetailPage({ params }) {
       eyebrow={guide.location ? `FIELD GUIDE · ${guide.location.toUpperCase()}` : "GAAVCONNECT FIELD NOTES"}
       title={guide.title}
       description={guide.description}
+      heroImage={guide.coverImage}
       breadcrumbs={[{ label: "Local guides", href: "/guides" }, { label: guide.title }]}
       sections={guide.sections}
       cta={{

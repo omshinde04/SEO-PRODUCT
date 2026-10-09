@@ -413,6 +413,24 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                 images: [...current.images, image].slice(0, 20),
             }));
 
+            // Register in media library asynchronously
+            fetch("/api/admin/content/media", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    url: uploadData.secure_url,
+                    publicId: uploadData.public_id,
+                    folder: uploadData.folder || config.folder,
+                    alt: image.alt,
+                    caption: `${purpose}: ${form.name || file.name}`,
+                    mimeType: (uploadData.resource_type || "image") + "/" + (uploadData.format || "jpeg"),
+                    bytes: uploadData.bytes || file.size,
+                    width: uploadData.width || null,
+                    height: uploadData.height || null,
+                }),
+            }).catch(() => {});
+
             setError("");
         } catch (err) {
             setError(err.message || "Image upload failed.");

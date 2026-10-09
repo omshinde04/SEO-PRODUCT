@@ -1,7 +1,7 @@
 import Link from "next/link";
 import PublicNavbar from "@/components/public-navbar";
 
-export default function PublicInfoPage({ eyebrow = "GAAVCONNECT", title, highlight, description, sections = [], cta, breadcrumbs = [] }) {
+export default function PublicInfoPage({ eyebrow = "GAAVCONNECT", title, highlight, description, heroImage, sections = [], cta, breadcrumbs = [] }) {
   return (
     <main className="info-page">
       <div className="info-topline"><span className="info-dot" /> EVERY BUSINESS. EVERY LOCATION. CONNECTED.</div>
@@ -9,7 +9,13 @@ export default function PublicInfoPage({ eyebrow = "GAAVCONNECT", title, highlig
       <div className="info-breadcrumb"><Link href="/">Home</Link>{breadcrumbs.map((item) => <span key={item.label}> / {item.href ? <Link href={item.href}>{item.label}</Link> : item.label}</span>)}</div>
       <section className="info-hero">
         <div className="info-hero-copy"><span className="info-eyebrow">{eyebrow}</span><h1>{title} {highlight && <em>{highlight}</em>}</h1><p>{description}</p></div>
-        <div className="info-hero-art" aria-hidden="true"><div className="info-art-sun" /><div className="info-art-hill info-art-hill-a" /><div className="info-art-hill info-art-hill-b" /><div className="info-art-road" /><span className="info-art-stamp">MADE FOR<br />LOCAL LIFE</span><span className="info-art-leaf">✳</span></div>
+        {heroImage?.url ? (
+          <div className="info-hero-image-wrap" style={{ position: "relative", borderRadius: "20px", overflow: "hidden", minHeight: "220px", maxHeight: "340px", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1)", border: "1px solid rgba(0,0,0,0.06)" }}>
+            <img src={heroImage.url} alt={heroImage.alt || title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
+        ) : (
+          <div className="info-hero-art" aria-hidden="true"><div className="info-art-sun" /><div className="info-art-hill info-art-hill-a" /><div className="info-art-hill info-art-hill-b" /><div className="info-art-road" /><span className="info-art-stamp">MADE FOR<br />LOCAL LIFE</span><span className="info-art-leaf">✳</span></div>
+        )}
       </section>
       <div className="info-content">
         {sections.map((section, index) => (
