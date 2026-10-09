@@ -186,6 +186,7 @@ const businessPatchSchema = z.object({
     isFeatured: z.boolean(),
     status: z.enum(businessStatuses),
     verificationStatus: z.enum(verificationStatuses),
+    publishedAt: z.union([z.string().datetime(), z.date()]).nullable().optional(),
 }).partial().strict();
 
 function isDuplicateKey(error) {

@@ -300,13 +300,13 @@ export default function SubmissionsClient({ user }) {
         setFormOpen(true);
     }
 
-    async function handleBusinessSaved(saveNotice) {
+    async function handleBusinessSaved(saveNotice, savedBusiness) {
         setFormOpen(false);
         const subId = activeSubmissionId;
         setActiveSubmissionId("");
         setEditingBusiness(null);
 
-        if (subId) {
+        if (subId && savedBusiness?._id) {
             try {
                 await fetch(`/api/admin/submissions/${subId}`, {
                     method: "PATCH",
@@ -314,6 +314,7 @@ export default function SubmissionsClient({ user }) {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         status: "approved",
+                        business: savedBusiness._id,
                         adminNotes: "Approved and converted to business listing via full Business Form.",
                     }),
                 });
@@ -555,8 +556,29 @@ export default function SubmissionsClient({ user }) {
                                             </div>
                                         </button>
                                         <div className="flex flex-wrap gap-2 xl:max-w-[480px] xl:justify-end">
-                                            {/* Button to open full Business Form with all submission fields pre-filled */}
-                                            {!item.business && (
+                                            {item.business ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-flex items-center rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 border border-emerald-200">
+                                                        ✓ Listing Created ({typeof item.business === "object" ? item.business.status || "published" : "approved"})
+                                                    </span>
+                                                    {typeof item.business === "object" && item.business.slug ? (
+                                                        <Link
+                                                            href={item.business.status === "published" ? `/businesses/${item.business.slug}` : `/admin/businesses`}
+                                                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-50 shadow-sm"
+                                                            target={item.business.status === "published" ? "_blank" : undefined}
+                                                        >
+                                                            {item.business.status === "published" ? "View listing ↗" : "Edit listing in Admin ↗"}
+                                                        </Link>
+                                                    ) : (
+                                                        <Link
+                                                            href="/admin/businesses"
+                                                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-50 shadow-sm"
+                                                        >
+                                                            View in Businesses ↗
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            ) : (
                                                 <button
                                                     className={accentClass}
                                                     type="button"

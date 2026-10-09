@@ -195,7 +195,7 @@ const tempLocSlug = `temp-region-${Date.now()}`;
 const createLocRes = await api("/api/admin/locations", {
   method: "POST",
   body: {
-    name: "Northern Ghats Region",
+    name: `Northern Ghats Region ${Date.now()}`,
     slug: tempLocSlug,
     type: "region",
     description: "Highland geographic tourism belt",

@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
+import { connectDB } from "@/lib/db";
+import ContentItem from "@/models/ContentItem";
 import PublicInfoPage from "@/components/public-info-page";
 
-const guides = {
+export const dynamic = "force-dynamic";
+
+const staticGuides = {
   "choosing-a-local-service": {
     title: "How to choose a local service",
     description: "A practical checklist for comparing local service providers and asking the right questions before you book.",
@@ -48,13 +52,39 @@ const guides = {
   },
 };
 
-export function generateStaticParams() {
-  return Object.keys(guides).map((slug) => ({ slug }));
+function parseBodyToSections(body = "") {
+  if (!body) return [];
+  const parts = body.split(/^##\s+/m).filter(Boolean);
+  if (!parts.length) {
+    return [{ title: "Overview", body }];
+  }
+  return parts.map((part) => {
+    const lines = part.split("\n");
+    const title = lines[0].replace(/^#+\s*/, "").trim();
+    const sectionBody = lines.slice(1).join("\n").trim();
+    return { title: title || "Overview", body: sectionBody || title };
+  });
+}
+
+async function getGuide(slug) {
+  if (staticGuides[slug]) return staticGuides[slug];
+  try {
+    await connectDB();
+    const item = await ContentItem.findOne({ slug, kind: "guide", status: "published" }).lean();
+    if (!item) return null;
+    return {
+      title: item.title,
+      description: item.summary || item.title,
+      sections: parseBodyToSections(item.body),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const guide = guides[slug];
+  const guide = await getGuide(slug);
   if (!guide) return { title: "Guide not found | GaavConnect", robots: { index: false, follow: true } };
   const title = `${guide.title} | GaavConnect Guides`;
   return {
@@ -68,7 +98,21 @@ export async function generateMetadata({ params }) {
 
 export default async function GuideDetailPage({ params }) {
   const { slug } = await params;
-  const guide = guides[slug];
+  const guide = await getGuide(slug);
   if (!guide) notFound();
-  return <PublicInfoPage eyebrow="GAAVCONNECT FIELD NOTES" title={guide.title} description={guide.description} breadcrumbs={[{ label: "Local guides", href: "/guides" }, { label: guide.title }]} sections={guide.sections} cta={{ title: "Turn useful information into a local discovery.", description: "Browse the businesses, categories and locations currently available in the directory.", href: "/businesses", label: "Explore businesses" }} />;
+  return (
+    <PublicInfoPage
+      eyebrow="GAAVCONNECT FIELD NOTES"
+      title={guide.title}
+      description={guide.description}
+      breadcrumbs={[{ label: "Local guides", href: "/guides" }, { label: guide.title }]}
+      sections={guide.sections}
+      cta={{
+        title: "Turn useful information into a local discovery.",
+        description: "Browse the businesses, categories and locations currently available in the directory.",
+        href: "/businesses",
+        label: "Explore businesses",
+      }}
+    />
+  );
 }

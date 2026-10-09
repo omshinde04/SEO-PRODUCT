@@ -73,9 +73,6 @@ export async function PATCH(request, { params }) {
         if (!item) return apiError("Submission not found.", 404);
 
         if (parsed.data.status !== undefined) {
-            if (item.business && parsed.data.status !== "approved") {
-                return apiError("This request already has a business listing. Keep it approved and manage publication in Business Management.", 409);
-            }
             item.status = parsed.data.status;
             if (["approved", "rejected"].includes(parsed.data.status)) {
                 item.reviewedBy = auth.user.id;
@@ -186,6 +183,7 @@ export async function POST(request, { params }) {
 
         const business = await Business.create(businessData);
         submission.business = business._id;
+        submission.status = "approved";
         submission.convertedAt = new Date();
         submission.reviewedBy = auth.user.id;
         submission.reviewedAt = submission.reviewedAt || new Date();

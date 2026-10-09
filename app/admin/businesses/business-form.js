@@ -517,7 +517,8 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                         ? "Business archived successfully."
                         : isEditing
                             ? "Business draft saved successfully."
-                            : "Business draft created successfully."
+                            : "Business draft created successfully.",
+                data.item
             );
         } catch (err) {
             setError(err.message || "Could not save business.");

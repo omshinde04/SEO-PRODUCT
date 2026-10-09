@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
+import Business from "@/models/Business";
 import BusinessSubmission from "@/models/BusinessSubmission";
+import Category from "@/models/Category";
+import Location from "@/models/Location";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
@@ -67,6 +70,28 @@ export async function GET(request) {
         for (const row of counts) {
             if (Object.hasOwn(summary, row._id)) summary[row._id] = row.count;
             summary.total += row.count;
+        }
+
+        // Auto-detect matching businesses if not explicitly linked
+        for (const item of items) {
+            if (!item.business && item.businessName) {
+                const matched = await Business.findOne({
+                    $or: [
+                        { name: new RegExp(`^${escapeRegex(item.businessName)}$`, "i") },
+                        ...(item.phone ? [{ "contact.phone": item.phone }] : []),
+                        ...(item.email ? [{ "contact.email": item.email }] : []),
+                    ],
+                })
+                    .select("name slug status")
+                    .lean();
+
+                if (matched) {
+                    item.business = matched;
+                    BusinessSubmission.updateOne({ _id: item._id }, { $set: { business: matched._id } })
+                        .exec()
+                        .catch(() => {});
+                }
+            }
         }
 
         return apiSuccess({

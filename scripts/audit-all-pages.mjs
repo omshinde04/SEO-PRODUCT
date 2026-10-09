@@ -87,11 +87,16 @@ const publicPages = [
   "/locations",
   "/locations/ghoti",
   "/locations/igatpuri",
-  "/places",
   "/guides",
-  "/events",
   "/about",
-  "/submit-business",
+  "/add-business",
+  "/contact",
+  "/how-it-works",
+  "/for-businesses",
+  "/explore",
+  "/help",
+  "/privacy",
+  "/safety",
 ];
 
 console.log("\n--- TESTING PUBLIC PAGES ---");
