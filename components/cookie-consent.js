@@ -24,6 +24,7 @@ export default function CookieConsent() {
         setVisible(true);
       }
     } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Show consent when browser storage cannot be read.
       setVisible(true);
     }
     const openSettings = () => { setCustomizing(true); setVisible(true); };
