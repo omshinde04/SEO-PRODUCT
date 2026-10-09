@@ -204,8 +204,18 @@ export default function BusinessesClient() {
 
     useEffect(() => {
         const controller = new AbortController();
-        loadBusinesses({ signal: controller.signal });
-        return () => controller.abort();
+        let cancelled = false;
+
+        queueMicrotask(() => {
+            if (!cancelled) {
+                loadBusinesses({ signal: controller.signal });
+            }
+        });
+
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
     }, [loadBusinesses]);
 
     const summary = useMemo(() => ({
