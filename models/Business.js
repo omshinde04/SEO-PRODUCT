@@ -312,6 +312,11 @@ businessSchema.index(
 );
 
 businessSchema.index(
+    { createdAt: -1, _id: -1 },
+    { name: "business_recent_created" }
+);
+
+businessSchema.index(
     { category: 1, location: 1, status: 1 },
     { name: "business_category_location_status" }
 );
