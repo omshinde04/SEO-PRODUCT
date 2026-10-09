@@ -374,7 +374,9 @@ export async function PATCH(request, context) {
                 const candidate = {
                     summary: updates.summary ?? current.summary,
                     body: updates.body ?? current.body,
-                    event: updates.event ?? current.event,
+                    event: updates.event
+                        ? { ...(current.event || {}), ...updates.event }
+                        : current.event,
                 };
                 const validationError = validatePublishedContent(resource.kind, candidate);
                 if (validationError) return validationError;
