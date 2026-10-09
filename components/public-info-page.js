@@ -1,20 +1,11 @@
 import Link from "next/link";
-
-const nav = [
-  { href: "/explore", label: "Explore" },
-  { href: "/guides", label: "Local guides" },
-  { href: "/about", label: "About" },
-];
+import PublicNavbar from "@/components/public-navbar";
 
 export default function PublicInfoPage({ eyebrow = "GAAVCONNECT", title, highlight, description, sections = [], cta, breadcrumbs = [] }) {
   return (
     <main className="info-page">
       <div className="info-topline"><span className="info-dot" /> EVERY BUSINESS. EVERY LOCATION. CONNECTED.</div>
-      <header className="info-header">
-        <Link href="/" className="info-logo"><img src="/gaavconnect-logo.svg" alt="GaavConnect — Your Local Connection" width="230" height="64" /></Link>
-        <nav aria-label="Main navigation">{nav.map((item) => <Link href={item.href} key={item.href}>{item.label}</Link>)}</nav>
-        <Link className="info-header-cta" href="/add-business">List a business <span aria-hidden="true">↗</span></Link>
-      </header>
+      <PublicNavbar />
       <div className="info-breadcrumb"><Link href="/">Home</Link>{breadcrumbs.map((item) => <span key={item.label}> / {item.href ? <Link href={item.href}>{item.label}</Link> : item.label}</span>)}</div>
       <section className="info-hero">
         <div className="info-hero-copy"><span className="info-eyebrow">{eyebrow}</span><h1>{title} {highlight && <em>{highlight}</em>}</h1><p>{description}</p></div>

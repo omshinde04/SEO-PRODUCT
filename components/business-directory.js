@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import OpenStreetMapPlaceAutocomplete from "@/components/openstreetmap-place-autocomplete";
+import PublicNavbar from "@/components/public-navbar";
 import { useEffect, useState } from "react";
 
 const TYPES = [
@@ -60,14 +61,39 @@ export default function BusinessDirectory() {
     return () => { active = false; clearTimeout(timer); controller.abort(); };
   }, [query, location, selectedPlace, category, type, page]);
 
+  const [showFilters, setShowFilters] = useState(false);
+
   function reset() { setQuery(""); setLocation(""); setSelectedPlace(null); setCategory(""); setType(""); setPage(1); }
 
   return (
     <main className="directory-page">
-      <header className="directory-header"><Link href="/" className="directory-back">← GaavConnect</Link><Link href="/add-business" className="directory-add">List your business ↗</Link></header>
-      <section className="directory-intro"><span className="eyebrow">YOUR NEXT FAVOURITE PLACE IS OUT THERE</span><h1>Good places.<br /><em>Closer than ever.</em></h1><p>Explore local businesses and places worth knowing. Search for what you need, then narrow it down to your neighbourhood.</p></section>
+      <PublicNavbar activePath="/businesses" />
+      <section className="directory-intro">
+        <span className="eyebrow">YOUR NEXT FAVOURITE PLACE IS OUT THERE</span>
+        <h1>Good places.<br /><em>Closer than ever.</em></h1>
+        <p>Explore local businesses and places worth knowing. Search for what you need, then narrow it down to your neighbourhood.</p>
+        <div className="mobile-filter-bar">
+          <button
+            type="button"
+            className="mobile-filter-trigger-btn"
+            onClick={() => setShowFilters((prev) => !prev)}
+          >
+            <span>{showFilters ? "✕ Hide filters" : "⚙ Filter & sort listings"}</span>
+            {(category || type || query || location) && <span className="active-filter-indicator">● Active</span>}
+          </button>
+          {(category || type || query || location) && (
+            <button type="button" className="mobile-filter-reset-btn" onClick={reset}>
+              Reset
+            </button>
+          )}
+        </div>
+      </section>
       <section className="directory-layout">
-        <aside className="filter-panel"><div className="filter-title"><strong>Make it yours</strong><button type="button" onClick={reset}>Reset</button></div>
+        <aside className={`filter-panel ${showFilters ? "mobile-expanded" : ""}`}>
+          <div className="filter-title">
+            <strong>Filter listings</strong>
+            <button type="button" onClick={reset}>Reset all</button>
+          </div>
           <label className="filter-label">SEARCH<input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Business, service, keyword…" /></label>
           <div className="filter-label"><OpenStreetMapPlaceAutocomplete inputId="directory-location-search" label="LOCATION" value={location} onChange={(value) => { setLocation(value); setSelectedPlace(null); setPage(1); }} onSelect={(place) => { setSelectedPlace(place ? { ...place, searchText: place.searchText || place.name || place.address?.city || place.address?.area || place.address?.district || place.description } : null); setPage(1); }} placeholder="Search a town or village" /></div>
           <label className="filter-label">CATEGORY<select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }}><option value="">Every category</option>{categories.map((item) => <option key={item._id} value={item.slug}>{item.name}</option>)}</select></label>

@@ -2,37 +2,432 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import PublicNavbar from "@/components/public-navbar";
 
-function imageOf(item) { return item?.coverImage?.url || item?.images?.[0]?.url || item?.logo?.url || ""; }
-function Card({ item }) {
-  const image=imageOf(item);
-  const galleryImages = Array.isArray(item?.images) ? item.images.filter((entry) => entry?.url && (entry.url.startsWith("https://") || entry.url.startsWith("http://"))) : [];
-  return <article className="business-card"><Link href={`/businesses/${item.slug}`} className="business-card-image">{image ? <img src={image} alt={item.coverImage?.alt || item.name} loading="lazy"/> : <div className="business-art art-green"><span>{(item.name||"L").slice(0,1)}</span><small>LOCAL FIND</small></div>}</Link><div className="business-card-body"><div className="business-card-meta"><span>{item.category?.name||"Local business"}</span></div><h3><Link href={`/businesses/${item.slug}`}>{item.name}</Link></h3><p className="business-tagline">{item.tagline||item.description||"Discover a local favourite."}</p><div className="business-card-footer"><span className="location-line">⌖ {[item.address?.area,item.address?.city,item.location?.name].filter(Boolean).join(", ")||"Local area"}</span><Link className="card-arrow" href={`/businesses/${item.slug}`}>↗</Link></div></div></article>;
+function imageOf(item) {
+  return item?.coverImage?.url || item?.images?.[0]?.url || item?.logo?.url || "";
 }
-export default function PublicDetail({ kind, slug }) {
-  const [data,setData]=useState(null), [page,setPage]=useState(1), [loading,setLoading]=useState(true), [error,setError]=useState("");
+
+function Card({ item }) {
+  const image = imageOf(item);
+  return (
+    <article className="business-card">
+      <Link href={`/businesses/${item.slug}`} className="business-card-image">
+        {image ? (
+          <img src={image} alt={item.coverImage?.alt || item.name} loading="lazy" />
+        ) : (
+          <div className="business-art art-green">
+            <span>{(item.name || "L").slice(0, 1)}</span>
+            <small>LOCAL FIND</small>
+          </div>
+        )}
+      </Link>
+      <div className="business-card-body">
+        <div className="business-card-meta">
+          <span>{item.category?.name || "Local business"}</span>
+        </div>
+        <h3>
+          <Link href={`/businesses/${item.slug}`}>{item.name}</Link>
+        </h3>
+        <p className="business-tagline">
+          {item.tagline || item.description || "Discover a local favourite."}
+        </p>
+        <div className="business-card-footer">
+          <span className="location-line">
+            ⌖ {[item.address?.area, item.address?.city, item.location?.name].filter(Boolean).join(", ") || "Local area"}
+          </span>
+          <Link className="card-arrow" href={`/businesses/${item.slug}`}>
+            ↗
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function PublicDetail({ kind, slug, initialItem = null }) {
+  const [data, setData] = useState(initialItem ? { success: true, item: initialItem } : null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(!initialItem);
+  const [error, setError] = useState("");
   const [activeGalleryImage, setActiveGalleryImage] = useState(null);
-  useEffect(()=>{let active=true; const controller=new AbortController(); (async()=>{setLoading(true);setError("");try{const response=await fetch(`/api/${kind}/${encodeURIComponent(slug)}?page=${page}&limit=12`,{signal:controller.signal});const result=await response.json();if(!response.ok||!result.success)throw new Error(result.message||"This page could not be found.");if(active)setData(result);}catch(err){if(active&&err.name!=="AbortError")setError(err.message||"Please try again.");}finally{if(active)setLoading(false);}})();return()=>{active=false;controller.abort();};},[kind,slug,page]);
-  const item=data?.item;
-  const isBusiness=kind==="businesses";
-  const children=data?.children||[];
-  const businesses=isBusiness?[]:(data?.businesses||[]);
-  const pagination=data?.pagination||data?.businessPagination||null;
-  const title=item?.name|| (isBusiness?"Local business":"Discover locally");
-  const description=item?.description||item?.tagline||"Discover trusted local places, useful services and people worth knowing.";
-  const image=imageOf(item);
-  const galleryImages = Array.isArray(item?.images) ? item.images.filter((entry) => entry?.url && (entry.url.startsWith("https://") || entry.url.startsWith("http://"))) : [];
-  return <main className="directory-page">
-    <header className="directory-header"><Link href="/" className="directory-back">← GaavConnect</Link><Link href="/add-business" className="directory-add">List your business ↗</Link></header>
-    {loading&&!item ? <section className="detail-state"><span className="eyebrow">JUST A MOMENT</span><h1>Finding the good stuff…</h1><p>Loading the details for this local page.</p></section> : error ? <section className="detail-state"><span className="eyebrow">WE COULDN’T FIND THAT</span><h1>Let’s find another way.</h1><p>{error}</p><Link className="detail-primary" href={isBusiness?"/businesses":kind==="categories"?"/categories":"/locations"}>Browse {isBusiness?"all businesses":kind}</Link></section> : item ? <>
-      <div className="detail-breadcrumb"><Link href="/">Home</Link><span> / </span><Link href={isBusiness?"/businesses":kind==="categories"?"/categories":"/locations"}>{isBusiness?"Businesses":kind==="categories"?"Categories":"Locations"}</Link><span> / {title}</span></div>
-      <section className="detail-hero"><div className="detail-copy"><span className="eyebrow">{isBusiness?"LOCAL BUSINESS":kind==="categories"?"BROWSE THIS CATEGORY":(item.type||"LOCAL AREA").toUpperCase()}</span><h1>{title}</h1>{item.tagline&&<p className="detail-tagline">{item.tagline}</p>}<p>{description}</p><div className="detail-chips">{item.category?.name&&<Link href={`/categories/${item.category.slug}`}>{item.category.name}</Link>}{item.location?.name&&<Link href={`/locations/${item.location.slug}`}>⌖ {item.location.name}</Link>}{item.verificationStatus==="verified"&&<span>✓ Verified listing</span>}</div>{isBusiness&&<div className="detail-actions">{item.contact?.phone&&<a className="detail-primary" href={`tel:${item.contact.phone.replace(/[^+\d]/g,"")}`}>Call business ↗</a>}{item.contact?.whatsapp&&<a className="detail-secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${item.contact.whatsapp.replace(/\D/g,"")}`}>WhatsApp ↗</a>}{item.contact?.website&&<a className="detail-secondary" target="_blank" rel="noreferrer" href={item.contact.website}>Website ↗</a>}</div>}</div><div className="detail-visual">{image?<img src={image} alt={item.coverImage?.alt||title}/>:<div className="detail-art"><span>{title.slice(0,1).toUpperCase()}</span><small>LOCAL FINDS · GAAVCONNECT</small></div>}</div></section>
-      {isBusiness ? <><section className="detail-content-grid"><article className="detail-panel"><span className="eyebrow">A LITTLE MORE ABOUT THEM</span><h2>Good to know</h2><p>{description}</p>{item.services?.length>0&&<><h3>Services</h3><div className="detail-tags">{item.services.map((s,i)=><span key={i}>{typeof s==="string"?s:s.name||s.title||"Service"}</span>)}</div></>}{item.address&&<><h3>Find them</h3><p>{[item.address?.line1,item.address?.line2,item.address?.area,item.address?.city,item.address?.state,item.address?.postalCode].filter(Boolean).join(", ")}</p></>}{item.hours&&<><h3>Opening hours</h3><p>Check with the business directly for today’s hours.</p></>}</article><aside className="detail-panel detail-contact"><span className="eyebrow">MAKE A CONNECTION</span><h2>Ready to reach out?</h2><p>Contact the business directly to confirm services, availability and details.</p>{item.contact?.email&&<a href={`mailto:${item.contact.email}`}>✉ {item.contact.email}</a>}{item.contact?.phone&&<a href={`tel:${item.contact.phone}`}>☎ {item.contact.phone}</a>}{item.address?.city&&<p>⌖ {item.address.area ? item.address.area+", " : ""}{item.address.city}</p>}{(Number.isFinite(item.coordinates?.latitude) && Number.isFinite(item.coordinates?.longitude)) || item.address?.formatted ? <a className="detail-secondary" target="_blank" rel="noreferrer" href={Number.isFinite(item.coordinates?.latitude) && Number.isFinite(item.coordinates?.longitude) ? `https://www.google.com/maps/dir/?api=1&destination=${item.coordinates.latitude},${item.coordinates.longitude}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address.formatted)}`}>Get directions ↗</a> : null}<Link className="detail-secondary" href="/businesses">Explore more businesses →</Link></aside></section>{galleryImages.length > 0 && <section className="business-gallery"><div className="business-gallery-heading"><div><span className="eyebrow">A CLOSER LOOK</span><h2>Inside {title}</h2><p>Photos shared for this business listing.</p></div><span>{galleryImages.length} {galleryImages.length === 1 ? "photo" : "photos"}</span></div><div className="business-gallery-grid">{galleryImages.map((entry, index) => <button className="business-gallery-item" type="button" key={entry.publicId || entry.url} onClick={() => setActiveGalleryImage(entry)} aria-label={`View photo ${index + 1} of ${title}`}><img src={entry.url} alt={entry.alt || `${title} photo ${index + 1}`} loading="lazy" /><span aria-hidden="true">↗</span></button>)}</div></section>}</> : <>
-        {children.length>0&&<section className="detail-listing-section"><div className="section-heading"><div><span className="eyebrow">KEEP EXPLORING</span><h2>Explore {kind==="categories"?"subcategories":"nearby places"}</h2></div></div><div className="collection-grid">{children.map(child=><Link className="collection-card" key={child._id} href={`/${kind}/${child.slug}`}><span className="collection-symbol collection-symbol-2">⌖</span><span className="collection-card-copy"><strong>{child.name}</strong><small>{child.description||"Explore more"}</small></span><span className="collection-arrow">↗</span></Link>)}</div></section>}
-        <section className="detail-listing-section"><div className="section-heading"><div><span className="eyebrow">THE LOCAL DIRECTORY</span><h2>{kind==="categories"?"Places in this category":"Places around here"}</h2><p>Find your next favourite among published local listings.</p></div></div>{businesses.length>0?<div className="directory-cards">{businesses.map(b=><Card key={b._id} item={b}/>)}</div>:<div className="directory-empty"><h3>More local finds are on the way</h3><p>There aren’t any published listings to show here yet. Explore the full directory in the meantime.</p><Link className="detail-primary" href="/businesses">Explore all businesses →</Link></div>}{pagination&&pagination.totalPages>1&&<div className="pagination-controls"><button disabled={page<=1} onClick={()=>{setPage(p=>p-1);window.scrollTo({top:500,behavior:"smooth"});}}>← Previous</button><span>Page {page} of {pagination.totalPages}</span><button disabled={page>=pagination.totalPages} onClick={()=>{setPage(p=>p+1);window.scrollTo({top:500,behavior:"smooth"});}}>Next →</button></div>}</section>
-      </>}
-    </> : null}
-    {activeGalleryImage && <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label="Business gallery photo" onClick={() => setActiveGalleryImage(null)}><button className="gallery-lightbox-close" type="button" aria-label="Close photo" onClick={() => setActiveGalleryImage(null)}>×</button><img src={activeGalleryImage.url} alt={activeGalleryImage.alt || title} onClick={(event) => event.stopPropagation()} /></div>}
-    <footer className="directory-footer"><Link href="/">GaavConnect</Link><span>Find good things, closer to home.</span><Link href="/businesses">Explore all listings →</Link></footer>
-  </main>;
+
+  useEffect(() => {
+    // If we already have the initial item for a single business and we're on page 1, skip re-fetch
+    if (initialItem && kind === "businesses" && page === 1) {
+      return;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch(
+          `/api/${kind}/${encodeURIComponent(slug)}?page=${page}&limit=12`,
+          { signal: controller.signal }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "This page could not be found.");
+        }
+        if (active) setData(result);
+      } catch (err) {
+        if (active && err.name !== "AbortError") {
+          setError(err.message || "Please try again.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [kind, slug, page, initialItem]);
+
+  const item = data?.item;
+  const isBusiness = kind === "businesses";
+  const children = data?.children || [];
+  const businesses = isBusiness ? [] : data?.businesses || [];
+  const pagination = data?.pagination || data?.businessPagination || null;
+  const title = item?.name || (isBusiness ? "Local business" : "Discover locally");
+  const description =
+    item?.description || item?.tagline || "Discover trusted local places, useful services and people worth knowing.";
+  const image = imageOf(item);
+  const galleryImages = Array.isArray(item?.images)
+    ? item.images.filter(
+        (entry) =>
+          entry?.url &&
+          (entry.url.startsWith("https://") || entry.url.startsWith("http://"))
+      )
+    : [];
+
+  return (
+    <main className="directory-page">
+      <PublicNavbar activePath={isBusiness ? "/businesses" : `/${kind}`} />
+
+      {loading && !item ? (
+        <section className="detail-state">
+          <span className="eyebrow">JUST A MOMENT</span>
+          <h1>Finding the good stuff…</h1>
+          <p>Loading the details for this local page.</p>
+        </section>
+      ) : error && !item ? (
+        <section className="detail-state">
+          <span className="eyebrow">WE COULDN’T FIND THAT</span>
+          <h1>Let’s find another way.</h1>
+          <p>{error}</p>
+          <Link
+            className="detail-primary"
+            href={isBusiness ? "/businesses" : kind === "categories" ? "/categories" : "/locations"}
+          >
+            Browse {isBusiness ? "all businesses" : kind}
+          </Link>
+        </section>
+      ) : item ? (
+        <>
+          <div className="detail-breadcrumb">
+            <Link href="/">Home</Link>
+            <span> / </span>
+            <Link
+              href={isBusiness ? "/businesses" : kind === "categories" ? "/categories" : "/locations"}
+            >
+              {isBusiness ? "Businesses" : kind === "categories" ? "Categories" : "Locations"}
+            </Link>
+            <span> / {title}</span>
+          </div>
+
+          <section className="detail-hero">
+            <div className="detail-copy">
+              <span className="eyebrow">
+                {isBusiness
+                  ? "LOCAL BUSINESS"
+                  : kind === "categories"
+                  ? "BROWSE THIS CATEGORY"
+                  : (item.type || "LOCAL AREA").toUpperCase()}
+              </span>
+              <h1>{title}</h1>
+              {item.tagline && <p className="detail-tagline">{item.tagline}</p>}
+              <p>{description}</p>
+              <div className="detail-chips">
+                {item.category?.name && (
+                  <Link href={`/categories/${item.category.slug}`}>{item.category.name}</Link>
+                )}
+                {item.location?.name && (
+                  <Link href={`/locations/${item.location.slug}`}>⌖ {item.location.name}</Link>
+                )}
+                {item.verificationStatus === "verified" && <span>✓ Verified listing</span>}
+              </div>
+              {isBusiness && (
+                <div className="detail-actions">
+                  {item.contact?.phone && (
+                    <a
+                      className="detail-primary"
+                      href={`tel:${item.contact.phone.replace(/[^+\d]/g, "")}`}
+                    >
+                      Call business ↗
+                    </a>
+                  )}
+                  {item.contact?.whatsapp && (
+                    <a
+                      className="detail-secondary"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={`https://wa.me/${item.contact.whatsapp.replace(/\D/g, "")}`}
+                    >
+                      WhatsApp ↗
+                    </a>
+                  )}
+                  {item.contact?.website && (
+                    <a
+                      className="detail-secondary"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={item.contact.website}
+                    >
+                      Website ↗
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="detail-visual">
+              {image ? (
+                <img src={image} alt={item.coverImage?.alt || title} />
+              ) : (
+                <div className="detail-art">
+                  <span>{title.slice(0, 1).toUpperCase()}</span>
+                  <small>LOCAL FINDS · GAAVCONNECT</small>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {isBusiness ? (
+            <>
+              <section className="detail-content-grid">
+                <article className="detail-panel">
+                  <span className="eyebrow">A LITTLE MORE ABOUT THEM</span>
+                  <h2>Good to know</h2>
+                  <p>{description}</p>
+                  {item.services?.length > 0 && (
+                    <>
+                      <h3>Services</h3>
+                      <div className="detail-tags">
+                        {item.services.map((s, i) => (
+                          <span key={i}>
+                            {typeof s === "string" ? s : s.name || s.title || "Service"}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {item.address && (
+                    <>
+                      <h3>Find them</h3>
+                      <p>
+                        {[
+                          item.address?.line1,
+                          item.address?.line2,
+                          item.address?.area,
+                          item.address?.city,
+                          item.address?.state,
+                          item.address?.postalCode,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    </>
+                  )}
+                  {item.openingHours?.notes && (
+                    <>
+                      <h3>Opening hours</h3>
+                      <p>{item.openingHours.notes}</p>
+                    </>
+                  )}
+                </article>
+                <aside className="detail-panel detail-contact">
+                  <span className="eyebrow">MAKE A CONNECTION</span>
+                  <h2>Ready to reach out?</h2>
+                  <p>Contact the business directly to confirm services, availability and details.</p>
+                  {item.contact?.email && <a href={`mailto:${item.contact.email}`}>✉ {item.contact.email}</a>}
+                  {item.contact?.phone && <a href={`tel:${item.contact.phone}`}>☎ {item.contact.phone}</a>}
+                  {item.address?.city && (
+                    <p>
+                      ⌖ {item.address.area ? item.address.area + ", " : ""}
+                      {item.address.city}
+                    </p>
+                  )}
+                  {(Number.isFinite(item.coordinates?.latitude) &&
+                    Number.isFinite(item.coordinates?.longitude)) ||
+                  item.address?.formatted ? (
+                    <a
+                      className="detail-secondary"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={
+                        Number.isFinite(item.coordinates?.latitude) &&
+                        Number.isFinite(item.coordinates?.longitude)
+                          ? `https://www.google.com/maps/dir/?api=1&destination=${item.coordinates.latitude},${item.coordinates.longitude}`
+                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                              item.address.formatted
+                            )}`
+                      }
+                    >
+                      Get directions ↗
+                    </a>
+                  ) : null}
+                  <Link className="detail-secondary" href="/businesses">
+                    Explore more businesses →
+                  </Link>
+                </aside>
+              </section>
+
+              {galleryImages.length > 0 && (
+                <section className="business-gallery">
+                  <div className="business-gallery-heading">
+                    <div>
+                      <span className="eyebrow">A CLOSER LOOK</span>
+                      <h2>Inside {title}</h2>
+                      <p>Photos shared for this business listing.</p>
+                    </div>
+                    <span>
+                      {galleryImages.length} {galleryImages.length === 1 ? "photo" : "photos"}
+                    </span>
+                  </div>
+                  <div className="business-gallery-grid">
+                    {galleryImages.map((entry, index) => (
+                      <button
+                        className="business-gallery-item"
+                        type="button"
+                        key={entry.publicId || entry.url}
+                        onClick={() => setActiveGalleryImage(entry)}
+                        aria-label={`View photo ${index + 1} of ${title}`}
+                      >
+                        <img
+                          src={entry.url}
+                          alt={entry.alt || `${title} photo ${index + 1}`}
+                          loading="lazy"
+                        />
+                        <span aria-hidden="true">↗</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          ) : (
+            <>
+              {children.length > 0 && (
+                <section className="detail-listing-section">
+                  <div className="section-heading">
+                    <div>
+                      <span className="eyebrow">KEEP EXPLORING</span>
+                      <h2>Explore {kind === "categories" ? "subcategories" : "nearby places"}</h2>
+                    </div>
+                  </div>
+                  <div className="collection-grid">
+                    {children.map((child) => (
+                      <Link className="collection-card" key={child._id} href={`/${kind}/${child.slug}`}>
+                        <span className="collection-symbol collection-symbol-2">⌖</span>
+                        <span className="collection-card-copy">
+                          <strong>{child.name}</strong>
+                          <small>{child.description || "Explore more"}</small>
+                        </span>
+                        <span className="collection-arrow">↗</span>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
+              <section className="detail-listing-section">
+                <div className="section-heading">
+                  <div>
+                    <span className="eyebrow">THE LOCAL DIRECTORY</span>
+                    <h2>{kind === "categories" ? "Places in this category" : "Places around here"}</h2>
+                    <p>Find your next favourite among published local listings.</p>
+                  </div>
+                </div>
+                {businesses.length > 0 ? (
+                  <div className="directory-cards">
+                    {businesses.map((b) => (
+                      <Card key={b._id} item={b} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="directory-empty">
+                    <h3>More local finds are on the way</h3>
+                    <p>
+                      There aren’t any published listings to show here yet. Explore the full directory in
+                      the meantime.
+                    </p>
+                    <Link className="detail-primary" href="/businesses">
+                      Explore all businesses →
+                    </Link>
+                  </div>
+                )}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="pagination-controls">
+                    <button
+                      disabled={page <= 1}
+                      onClick={() => {
+                        setPage((p) => p - 1);
+                        window.scrollTo({ top: 500, behavior: "smooth" });
+                      }}
+                    >
+                      ← Previous
+                    </button>
+                    <span>
+                      Page {page} of {pagination.totalPages}
+                    </span>
+                    <button
+                      disabled={page >= pagination.totalPages}
+                      onClick={() => {
+                        setPage((p) => p + 1);
+                        window.scrollTo({ top: 500, behavior: "smooth" });
+                      }}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </>
+      ) : null}
+
+      {activeGalleryImage && (
+        <div
+          className="gallery-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Business gallery photo"
+          onClick={() => setActiveGalleryImage(null)}
+        >
+          <button
+            className="gallery-lightbox-close"
+            type="button"
+            aria-label="Close photo"
+            onClick={() => setActiveGalleryImage(null)}
+          >
+            ×
+          </button>
+          <img
+            src={activeGalleryImage.url}
+            alt={activeGalleryImage.alt || title}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
+
+      <footer className="directory-footer">
+        <Link href="/">GaavConnect</Link>
+        <span>Find good things, closer to home.</span>
+        <Link href="/businesses">Explore all listings →</Link>
+      </footer>
+    </main>
+  );
 }

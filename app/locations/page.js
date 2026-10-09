@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connectDB } from "@/lib/db";
 import Location from "@/models/Location";
 import StructuredData from "@/components/structured-data";
+import PublicNavbar from "@/components/public-navbar";
 import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,7 @@ export default async function LocationsPage() {
   return (
     <main className="directory-page">
       <StructuredData data={structuredData} />
-      <header className="directory-header"><Link href="/">← GaavConnect</Link><Link href="/businesses">Explore businesses ↗</Link></header>
+      <PublicNavbar activePath="/locations" />
       <section className="detail-state">
         <span className="eyebrow">DISCOVER NEAR YOU</span>
         <h1>Explore local areas and villages</h1>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connectDB } from "@/lib/db";
 import Category from "@/models/Category";
 import StructuredData from "@/components/structured-data";
+import PublicNavbar from "@/components/public-navbar";
 import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,7 @@ export default async function CategoriesPage() {
   return (
     <main className="directory-page">
       <StructuredData data={structuredData} />
-      <header className="directory-header"><Link href="/">← GaavConnect</Link><Link href="/businesses">Explore businesses ↗</Link></header>
+      <PublicNavbar activePath="/categories" />
       <section className="detail-state">
         <span className="eyebrow">DISCOVER BY CATEGORY</span>
         <h1>Browse local business categories</h1>

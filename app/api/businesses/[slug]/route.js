@@ -1,5 +1,7 @@
 import { connectDB } from "@/lib/db";
 import Business from "@/models/Business";
+import Category from "@/models/Category";
+import Location from "@/models/Location";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
 export const runtime = "nodejs";
@@ -51,7 +53,7 @@ export async function GET(_request, { params }) {
 
         return apiSuccess({ item });
     } catch (error) {
-        console.error("[PUBLIC BUSINESS] Detail failed:", error.message);
+        console.error("[PUBLIC BUSINESS] Detail failed for slug:", slug, error);
         return apiError("Unable to retrieve business.", 500);
     }
 }

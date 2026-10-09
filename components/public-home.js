@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import OpenStreetMapPlaceAutocomplete from "@/components/openstreetmap-place-autocomplete";
+import PublicNavbar from "@/components/public-navbar";
 import { useCallback, useMemo, useState } from "react";
 
 const TYPES = [
@@ -121,11 +122,7 @@ export default function PublicHome({ initialData = null }) {
   return (
     <main className="site-shell">
       <div className="announcement-bar"><span className="announcement-dot" /> Your neighbourhood, better discovered <span className="announcement-separator">·</span> Starting in Nashik district <span className="announcement-right">Made for the places we call home <span aria-hidden="true">✳</span></span></div>
-      <header className="site-header">
-        <Link href="/" className="brand" aria-label="GaavConnect home"><img className="brand-logo" src="/gaavconnect-logo.svg" alt="GaavConnect — Your Local Connection" width="270" height="75" fetchPriority="high" /></Link>
-        <nav className="desktop-nav" aria-label="Main navigation"><a href="#discover">Discover</a><a href="#categories">Categories</a><a href="#places">Places</a><a href="#about">Our story</a></nav>
-        <div className="header-actions"><Link className="header-add" href="/add-business">List your business <Icon name="arrow" size={16} /></Link><button className="mobile-menu" type="button" onClick={() => document.getElementById("discover")?.scrollIntoView({ behavior: "smooth" })} aria-label="Jump to search"><Icon name="search" /></button></div>
-      </header>
+      <PublicNavbar activePath="/" />
 
       <section className="hero" id="discover">
         <div className="hero-grid-pattern" aria-hidden="true" />
