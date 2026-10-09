@@ -40,6 +40,7 @@ SEO-PRODUCT is a location-focused discovery platform foundation for businesses, 
    | `JWT_SECRET` | Private signing secret, at least 32 characters |
    | `AUTH_RATE_LIMIT_SECRET` | Separate private HMAC secret for rate-limit identifiers; falls back to `JWT_SECRET` if omitted |
    | `NEXT_PUBLIC_SITE_URL` | Canonical public origin used by robots and sitemap |
+   | `SITE_URL` | Server-side canonical origin for same-origin submission checks behind a reverse proxy |
    | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
    | `CLOUDINARY_API_KEY` | Cloudinary API key |
    | `CLOUDINARY_API_SECRET` | Server-only Cloudinary API secret |
