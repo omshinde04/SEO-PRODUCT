@@ -328,8 +328,8 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                 alt: file.name.replace(/\.[^.]+$/, "").slice(0, 200),
             };
 
-            if (purpose === "business-logo") setNested("logo", "", image);
-            else setNested("coverImage", "", image);
+            if (purpose === "business-logo") setValue("logo", image);
+            else setValue("coverImage", image);
 
             setError("");
         } catch (err) {
@@ -420,8 +420,8 @@ export default function BusinessForm({ business, onClose, onSaved }) {
     }
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-stretch justify-end bg-slate-950/50 sm:p-3" role="presentation">
-            <section role="dialog" aria-modal="true" aria-labelledby="business-form-title" className="flex h-full w-full max-w-3xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl">
+        <div className="mb-6 w-full min-w-0">
+            <section aria-labelledby="business-form-title" className="flex max-h-[calc(100vh-9rem)] min-h-[32rem] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <header className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-7">
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-600">
