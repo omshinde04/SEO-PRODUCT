@@ -1,6 +1,6 @@
 # SEO-PRODUCT
 
-SEO-PRODUCT is a location-focused discovery platform foundation for businesses, places, guides, and local events, starting around Ghoti, Igatpuri, and Nashik. The current development priority is a secure, usable admin panel; the public discovery website is a later phase.
+SEO-PRODUCT is a location-focused discovery platform foundation for businesses, places, guides, and local events, starting around Ghoti, Igatpuri, and Nashik. The platform includes a public discovery website and a secure admin panel for managing business listings, locations, categories, content, media, and SEO.
 
 ## Technology
 
@@ -102,4 +102,4 @@ GitHub Actions runs automated tests, ESLint, a production build, and authenticat
 
 ## Current scope
 
-The priority is to finish and verify the admin panel and its data/security workflows. The public discovery pages and complete live SEO metadata pipeline are not considered finished just because admin APIs and SEO settings exist. Validate the public routes, sitemap, and metadata integration in a separate phase before launching the platform.
+The public website includes business discovery, category and location directories, business profiles with gallery images, editorial guides, trust/support pages, cookie preferences, Google Places autocomplete, and database-backed SEO metadata. Validate the public routes, sitemap, and metadata integration in a separate phase before launching the platform.
