@@ -222,6 +222,48 @@ expectStatus(await request("/api/admin/locations/" + stateId, {
     body: { status: "active" },
 }), 200, "Reactivate state location");
 
+const businessSlug = `ci-business-${suffix}`;
+const business = await request("/api/admin/businesses", {
+    method: "POST",
+    cookie,
+    body: {
+        name: `CI Business ${suffix}`,
+        slug: businessSlug,
+        description: "A valid business description for the admin smoke test.",
+        category: categoryParentId,
+        location: countryId,
+        status: "draft",
+    },
+});
+expectStatus(business, 201, "Create draft business");
+const businessId = business.data.item?._id;
+assert.ok(businessId, "Business should have an ID");
+
+const businessSearch = await request(
+    "/api/admin/businesses?" + new URLSearchParams({ q: businessSlug, page: "1", limit: "20" }),
+    { cookie }
+);
+expectStatus(businessSearch, 200, "Search businesses");
+assert.ok(businessSearch.data.items?.some((item) => item._id === businessId));
+
+expectStatus(await request("/api/admin/businesses/" + businessId, {
+    method: "PATCH",
+    cookie,
+    body: { status: "published" },
+}), 200, "Publish business");
+
+expectStatus(await request("/api/admin/businesses/" + businessId, {
+    method: "DELETE",
+    cookie,
+}), 200, "Archive business");
+
+const archivedBusiness = await request(
+    "/api/admin/businesses?" + new URLSearchParams({ q: businessSlug, status: "archived", page: "1", limit: "20" }),
+    { cookie }
+);
+expectStatus(archivedBusiness, 200, "Read archived business");
+assert.ok(archivedBusiness.data.items?.some((item) => item._id === businessId));
+
 const placeSlug = `ci-place-${suffix}`;
 const place = await request("/api/admin/content/places", {
     method: "POST",
