@@ -81,7 +81,7 @@ export default function PublicHome({ initialData = null }) {
       if (filters.q) params.set("q", filters.q);
       if (filters.location) params.set("locationText", filters.location);
       if (filters.businessType) params.set("businessType", filters.businessType);
-      const [businessResponse, categoryResponse, locationResponse] = await Promise.all([
+      const [businessResponse, categoryResponse] = await Promise.all([
         fetch(`/api/businesses?${params.toString()}`, { cache: "no-store" }),
         fetch("/api/categories?limit=12", { cache: "no-store" }),
         fetch("/api/locations?limit=30", { cache: "no-store" }),
