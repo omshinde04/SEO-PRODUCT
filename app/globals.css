@@ -285,30 +285,30 @@ button { cursor: pointer; }
 @media(max-width:760px){.business-gallery{padding:0 18px 48px}.business-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.business-gallery-heading{align-items:flex-start}.business-gallery-heading h2{font-size:26px}.gallery-lightbox{padding:60px 12px 15px}}
 
 /* Google Places autocomplete */
-.google-place-field { position:relative; min-width:0; width:100%; }
-.google-place-label { display:block; margin-bottom:5px; color:#839082; font-size:8px; font-weight:800; letter-spacing:.13em; }
-.google-place-input-wrap { position:relative; display:flex; align-items:center; min-width:0; }
-.google-place-pin { position:absolute; left:11px; color:#6f8953; font-size:17px; pointer-events:none; }
-.google-place-input-wrap input { width:100%; min-width:0; min-height:42px; padding:9px 35px 9px 34px; border:1px solid #e2e7dc; border-radius:4px; outline:none; background:#fffefa; color:#304a36; font:inherit; font-size:12px; }
-.google-place-input-wrap input:focus { border-color:#9eaf7e; box-shadow:0 0 0 3px #d8ed9130; }
-.google-place-input-wrap input::placeholder { color:#9aa398; }
-.google-place-spinner { position:absolute; right:12px; width:14px; height:14px; border:2px solid #dce4d6; border-top-color:#587647; border-radius:50%; animation:google-place-spin .7s linear infinite; }
-.google-place-clear { position:absolute; right:8px; display:grid; width:25px; height:25px; place-items:center; border:0; background:transparent; color:#849080; font-size:20px; }
-.google-place-suggestions { position:absolute; z-index:80; top:calc(100% + 6px); left:0; width:100%; min-width:240px; overflow:hidden; border:1px solid #e0e5da; border-radius:5px; background:#fffefa; box-shadow:0 14px 35px #233d2b1a; }
-.google-place-suggestion { display:flex; align-items:flex-start; gap:11px; width:100%; padding:12px; border:0; border-bottom:1px solid #edf0e9; background:#fffefa; color:#304a36; text-align:left; }
-.google-place-suggestion:hover,.google-place-suggestion:focus-visible { background:#f2f5eb; outline:none; }
-.google-place-result-pin { display:grid; flex:0 0 27px; width:27px; height:27px; place-items:center; border-radius:50%; background:#eef2e6; color:#617a4d; }
-.google-place-suggestion>span:last-child { display:flex; min-width:0; flex-direction:column; gap:4px; }
-.google-place-suggestion strong { font-size:11px; line-height:1.4; }
-.google-place-suggestion small { color:#7a8578; font-size:10px; line-height:1.5; }
-.google-place-attribution { display:flex; align-items:center; justify-content:flex-end; gap:4px; padding:7px 10px; background:#fff; color:#777; font-size:9px; }
-.google-place-attribution strong { color:#4285f4; font-size:11px; letter-spacing:-.03em; }
-.google-place-error { margin:6px 0 0; color:#9b5145; font-size:10px; line-height:1.6; }
-.google-place-field:focus-within .google-place-suggestions { box-shadow:0 16px 36px #203c2c20; }
-@keyframes google-place-spin { to { transform:rotate(360deg); } }
-.search-location .google-place-label { margin-bottom:5px; }
-.search-location .google-place-input-wrap input { min-height:34px; padding:4px 30px 4px 0; border:0; background:transparent; box-shadow:none; font-size:12px; }
-.search-location .google-place-pin { display:none; }
-.search-location .google-place-clear { right:0; }
-.search-location .google-place-suggestions { min-width:260px; }
-@media(prefers-reduced-motion:reduce){.google-place-spinner{animation:none}.business-gallery-item img{transition:none}}
+.location-autocomplete-field { position:relative; min-width:0; width:100%; }
+.location-autocomplete-label { display:block; margin-bottom:5px; color:#839082; font-size:8px; font-weight:800; letter-spacing:.13em; }
+.location-autocomplete-input-wrap { position:relative; display:flex; align-items:center; min-width:0; }
+.location-autocomplete-pin { position:absolute; left:11px; color:#6f8953; font-size:17px; pointer-events:none; }
+.location-autocomplete-input-wrap input { width:100%; min-width:0; min-height:42px; padding:9px 35px 9px 34px; border:1px solid #e2e7dc; border-radius:4px; outline:none; background:#fffefa; color:#304a36; font:inherit; font-size:12px; }
+.location-autocomplete-input-wrap input:focus { border-color:#9eaf7e; box-shadow:0 0 0 3px #d8ed9130; }
+.location-autocomplete-input-wrap input::placeholder { color:#9aa398; }
+.location-autocomplete-spinner { position:absolute; right:12px; width:14px; height:14px; border:2px solid #dce4d6; border-top-color:#587647; border-radius:50%; animation:location-autocomplete-spin .7s linear infinite; }
+.location-autocomplete-clear { position:absolute; right:8px; display:grid; width:25px; height:25px; place-items:center; border:0; background:transparent; color:#849080; font-size:20px; }
+.location-autocomplete-suggestions { position:absolute; z-index:80; top:calc(100% + 6px); left:0; width:100%; min-width:240px; overflow:hidden; border:1px solid #e0e5da; border-radius:5px; background:#fffefa; box-shadow:0 14px 35px #233d2b1a; }
+.location-autocomplete-suggestion { display:flex; align-items:flex-start; gap:11px; width:100%; padding:12px; border:0; border-bottom:1px solid #edf0e9; background:#fffefa; color:#304a36; text-align:left; }
+.location-autocomplete-suggestion:hover,.location-autocomplete-suggestion:focus-visible { background:#f2f5eb; outline:none; }
+.location-autocomplete-result-pin { display:grid; flex:0 0 27px; width:27px; height:27px; place-items:center; border-radius:50%; background:#eef2e6; color:#617a4d; }
+.location-autocomplete-suggestion>span:last-child { display:flex; min-width:0; flex-direction:column; gap:4px; }
+.location-autocomplete-suggestion strong { font-size:11px; line-height:1.4; }
+.location-autocomplete-suggestion small { color:#7a8578; font-size:10px; line-height:1.5; }
+.location-autocomplete-attribution { display:flex; align-items:center; justify-content:flex-end; padding:7px 10px; background:#fff; color:#777; font-size:9px; } .location-autocomplete-attribution a { color:#526b43; text-decoration:underline; }
+.location-autocomplete-attribution strong { color:#4285f4; font-size:11px; letter-spacing:-.03em; }
+.location-autocomplete-error { margin:6px 0 0; color:#9b5145; font-size:10px; line-height:1.6; }
+.location-autocomplete-field:focus-within .location-autocomplete-suggestions { box-shadow:0 16px 36px #203c2c20; }
+@keyframes location-autocomplete-spin { to { transform:rotate(360deg); } }
+.search-location .location-autocomplete-label { margin-bottom:5px; }
+.search-location .location-autocomplete-input-wrap input { min-height:34px; padding:4px 30px 4px 0; border:0; background:transparent; box-shadow:none; font-size:12px; }
+.search-location .location-autocomplete-pin { display:none; }
+.search-location .location-autocomplete-clear { right:0; }
+.search-location .location-autocomplete-suggestions { min-width:260px; }
+@media(prefers-reduced-motion:reduce){.location-autocomplete-spinner{animation:none}.business-gallery-item img{transition:none}}
