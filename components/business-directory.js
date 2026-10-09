@@ -81,7 +81,7 @@ export default function BusinessDirectory() {
           <div className="filter-footnote">Showing published listings with active categories and locations.</div>
         </aside>
         <div className="directory-results"><div className="results-heading"><div><span className="eyebrow">THE LOCAL DIRECTORY</span><h2>{loading && !data.pagination ? "Finding your local favourites…" : `${data.pagination?.total ?? data.items.length} places to explore`}</h2></div><span className="results-page">Page {page}{data.pagination?.totalPages ? ` of ${Math.max(1, data.pagination.totalPages)}` : ""}</span></div>
-          {error && <div className="directory-empty"><h3>We couldn't load the directory.</h3><p>{error}</p><button onClick={() => setPage((value) => value)} type="button">Try again</button></div>}
+          {error && <div className="directory-empty"><h3>We couldn&apos;t load the directory.</h3><p>{error}</p><button onClick={() => setPage((value) => value)} type="button">Try again</button></div>}
           {loading && !data.items.length ? <div className="directory-cards">{[1,2,3,4,5,6].map((n) => <div className="business-skeleton" key={n}><div /><span /><i /><i /></div>)}</div> : data.items.length ? <div className="directory-cards">{data.items.map((item, index) => {
             const image = imageFor(item);
             const place = [item.address?.area, item.address?.city, item.location?.name].filter(Boolean).filter((value, i, all) => all.indexOf(value) === i).join(", ");
