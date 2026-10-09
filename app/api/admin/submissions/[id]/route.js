@@ -161,7 +161,7 @@ export async function POST(request, { params }) {
             verificationStatus: publishStatus === "published" ? "verified" : "unverified",
             isFeatured: false,
             seo: {
-                title: `${submission.businessName} | nearfolk`.slice(0, 70),
+                title: `${submission.businessName} | GaavConnect`.slice(0, 70),
                 description: description.trim().slice(0, 170),
                 noIndex: false,
             },
