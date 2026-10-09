@@ -127,13 +127,24 @@ export default function BusinessesClient() {
                 throw new Error(getErrorMessage(data, "Unable to load businesses."));
             }
 
-            setBusinesses(Array.isArray(data.items) ? data.items : []);
-            setPagination(data.pagination || {
+            const nextPagination = data.pagination || {
                 page,
                 limit: PAGE_SIZE,
                 total: Array.isArray(data.items) ? data.items.length : 0,
                 totalPages: 1,
-            });
+            };
+
+            // After archiving or changing a record, the current page can stop
+            // existing. Move to the last valid page instead of showing a false
+            // empty state while records still exist.
+            const lastValidPage = Math.max(1, nextPagination.totalPages || 0);
+            if (page > lastValidPage) {
+                setPage(lastValidPage);
+                return;
+            }
+
+            setBusinesses(Array.isArray(data.items) ? data.items : []);
+            setPagination(nextPagination);
         } catch (fetchError) {
             if (fetchError?.name !== "AbortError") {
                 setError(fetchError.message || "Unable to load businesses.");
