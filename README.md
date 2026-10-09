@@ -45,7 +45,6 @@ SEO-PRODUCT is a location-focused discovery platform foundation for businesses, 
    | `CLOUDINARY_API_KEY` | Cloudinary API key |
    | `CLOUDINARY_API_SECRET` | Server-only Cloudinary API secret |
    | `CLOUDINARY_UPLOAD_PRESET` | Signed upload preset configured in Cloudinary |
-   | `GOOGLE_MAPS_API_KEY` | Server-only Google Places API (New) key for public location search and admin address/coordinate lookup |
 
    Generate strong secrets instead of using the example placeholders. Never expose `JWT_SECRET`, `AUTH_RATE_LIMIT_SECRET`, or `CLOUDINARY_API_SECRET` to client-side code, and never commit `.env.local`.
 
@@ -77,9 +76,11 @@ SEO-PRODUCT is a location-focused discovery platform foundation for businesses, 
 
 The admin API requires an authenticated admin session. Admin pages and APIs must not be treated as public endpoints.
 
-## Google Places location search
+## OpenStreetMap location search
 
-The public homepage, business directory, and admin business address form use a server-side proxy to Google Places API (New). Set `GOOGLE_MAPS_API_KEY` in `.env.local` and your deployment environment; do not use a `NEXT_PUBLIC_` prefix for this key. In Google Cloud, enable Places API (New), restrict the key to the required API and the server-side environment where supported, set per-API quotas and budget alerts, and monitor usage. Eligible India-based accounts may receive monthly free usage thresholds, but Google Maps Platform is usage-billed beyond applicable thresholds; it is not an unlimited free API. The location search also retains manual address editing so listing management can continue if Google Places is unavailable.
+The public homepage, business directory, and admin business address form use a server-side proxy to the OpenStreetMap-based Photon geocoder. No Google Maps key or paid API key is required. The proxy limits query length and result count, rate-limits requests using MongoDB-backed counters, caches repeated provider queries for five minutes, uses a short timeout, biases ranking toward Nashik while allowing searches across India, and includes visible OpenStreetMap contributor attribution. Manual address editing remains available when search is unavailable.
+
+**Public-service limitation:** the community Photon demo at `photon.komoot.io` is intended for reasonable usage and does not guarantee availability; heavy usage can be throttled or blocked. Before GaavConnect scales to substantial production traffic, deploy a managed provider or self-host Photon with appropriate monitoring and capacity. Do not use the public Nominatim endpoint for autocomplete because its policy explicitly prohibits autocomplete usage. See the [Photon project guidance](https://github.com/komoot/photon) and [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
 
 ## Security notes
 
@@ -102,4 +103,4 @@ GitHub Actions runs automated tests, ESLint, a production build, and authenticat
 
 ## Current scope
 
-The public website includes business discovery, category and location directories, business profiles with gallery images, editorial guides, trust/support pages, cookie preferences, Google Places autocomplete, and database-backed SEO metadata. Validate the public routes, sitemap, and metadata integration in a separate phase before launching the platform.
+The public website includes business discovery, category and location directories, business profiles with gallery images, editorial guides, trust/support pages, cookie preferences, OpenStreetMap-powered location autocomplete, and database-backed SEO metadata. Validate the public routes, sitemap, and metadata integration in a separate phase before launching the platform.
