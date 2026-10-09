@@ -30,7 +30,7 @@ export async function GET(request) {
     const response = await fetch(url, {
       headers: {
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "id,displayName,formattedAddress,location,addressComponents",
+        "X-Goog-FieldMask": "id,formattedAddress,location,addressComponents",
       },
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
