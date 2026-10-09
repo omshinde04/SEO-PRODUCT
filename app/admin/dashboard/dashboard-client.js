@@ -17,6 +17,7 @@ const initialStats = {
     },
     categories: { total: 0, active: 0, inactive: 0 },
     locations: { total: 0, active: 0, inactive: 0 },
+    places: { total: 0, published: 0 }, guides: { total: 0, published: 0 }, events: { total: 0, published: 0 }, submissions: { pending: 0 },
 };
 
 function formatDate(value) {
@@ -218,6 +219,10 @@ export default function DashboardClient({ user }) {
                     ...initialStats.locations,
                     ...(data.stats?.locations || {}),
                 },
+                places: { ...initialStats.places, ...(data.stats?.places || {}) },
+                guides: { ...initialStats.guides, ...(data.stats?.guides || {}) },
+                events: { ...initialStats.events, ...(data.stats?.events || {}) },
+                submissions: { ...initialStats.submissions, ...(data.stats?.submissions || {}) },
             });
 
             setBusinesses(
@@ -286,6 +291,10 @@ export default function DashboardClient({ user }) {
             icon: "locations",
             tone: "slate",
         },
+        { title: "Places", value: stats.places.total, description: stats.places.published + " published", icon: "locations", tone: "blue" },
+        { title: "Guides", value: stats.guides.total, description: stats.guides.published + " published", icon: "categories", tone: "violet" },
+        { title: "Events", value: stats.events.total, description: stats.events.published + " published", icon: "published", tone: "green" },
+        { title: "Pending submissions", value: stats.submissions.pending, description: "Awaiting admin review", icon: "pending", tone: "amber" },
         {
             title: "Pending verification",
             value: stats.businesses.pendingVerification,
