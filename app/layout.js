@@ -71,7 +71,7 @@ export default async function RootLayout({ children }) {
       "@type": "Organization",
       name: settings.organizationName || settings.siteName || "GaavConnect",
       url: siteUrl,
-      ...(settings.organizationLogo ? { logo: settings.organizationLogo } : {}),
+      logo: settings.organizationLogo || `${siteUrl}/gaavconnect-logo.svg`,
     },
     potentialAction: {
       "@type": "SearchAction",
