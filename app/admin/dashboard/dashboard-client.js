@@ -422,6 +422,26 @@ export default function DashboardClient({ user }) {
                         </>
                     )}
 
+                    <section className="mt-8">
+                        <h2 className="mb-3 text-sm font-bold text-slate-900">Quick actions</h2>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                            {[
+                                ["Add business", "/admin/businesses"],
+                                ["Add place", "/admin/places"],
+                                ["Write guide", "/admin/guides"],
+                                ["Add event", "/admin/events"],
+                                ["Review submissions", "/admin/submissions"],
+                            ].map(([label, href]) => (
+                                <a key={href} href={href} className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">{label} <span aria-hidden="true">→</span></a>
+                            ))}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                            <a href="/admin/media" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">Media library</a>
+                            <a href="/admin/seo" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO settings</a>
+                            <a href="/admin/seo-templates" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO templates</a>
+                        </div>
+                    </section>
+
                     <footer className="mt-10 flex flex-col gap-2 border-t border-slate-200/80 py-5 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
                         <p>SEO-PRODUCT · Admin workspace</p>
                         <p>Signed in as {user?.email || "Administrator"}</p>
