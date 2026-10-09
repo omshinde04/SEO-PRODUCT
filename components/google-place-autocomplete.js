@@ -28,9 +28,11 @@ export default function GooglePlaceAutocomplete({
   const root = useRef(null);
   const selectionMade = useRef(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Sync local input state when the parent resets or loads a saved address. */
   useEffect(() => {
     setInput(value || "");
   }, [value]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     function outside(event) {
@@ -46,12 +48,7 @@ export default function GooglePlaceAutocomplete({
       selectionMade.current = false;
       return;
     }
-    if (query.length < 3) {
-      setSuggestions([]);
-      setLoading(false);
-      setError("");
-      return;
-    }
+    if (query.length < 3) return;
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -117,6 +114,7 @@ export default function GooglePlaceAutocomplete({
             setInput(next);
             onChange?.(next);
             setOpen(true);
+            if (next.trim().length < 3) { setSuggestions([]); setLoading(false); setError(""); }
             if (!next.trim()) onSelect?.(null);
           }}
           aria-autocomplete="list" aria-expanded={open && suggestions.length > 0} aria-controls={`${inputId}-suggestions`} role="combobox" />
