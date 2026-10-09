@@ -71,6 +71,7 @@ jobs:
           JWT_SECRET: ci-only-secret-do-not-use-in-production-000000000000000000000000
           AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-secret-000000000000000000000000
           NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+          SITE_URL: http://127.0.0.1:3000
       - name: Smoke test admin API workflows
         run: node scripts/ci/admin-api-smoke.mjs
         env:
