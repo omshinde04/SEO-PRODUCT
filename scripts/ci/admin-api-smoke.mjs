@@ -464,4 +464,4 @@ assert.match(logout.response.headers.get("set-cookie") || "", /max-age=0/i, "Log
 
 expectStatus(await request("/api/auth/me"), 401, "Session should be absent after logout");
 
-process.stdout.write("Admin API smoke test passed: auth, categories, locations, content, SEO, submissions, and logout.\n");
+process.stdout.write("Admin API smoke test passed: admin pages, authentication, business CRUD, categories, locations, content publishing, SEO, submissions, and logout.\n");
