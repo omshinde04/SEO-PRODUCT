@@ -18,7 +18,7 @@ function escapeRegex(value) {
 
 function parsePositiveInteger(value, fallback, maximum) {
     if (value === null || value === "") return fallback;
-    if (!/^\\d+$/.test(value)) return null;
+    if (!/^\d+$/.test(value)) return null;
 
     const parsed = Number(value);
 
@@ -117,8 +117,18 @@ export async function GET(request) {
             "seo.noIndex": { $ne: true },
         };
 
-        if (categoryResult.filter) filter.category = categoryResult.filter;
-        if (locationResult.filter) filter.location = locationResult.filter;
+        // Filter inactive references before pagination so totals match results.
+        const [activeCategoryIds, activeLocationIds] = await Promise.all([
+            Category.find({ status: "active" }).distinct("_id").exec(),
+            Location.find({ status: "active" }).distinct("_id").exec(),
+        ]);
+
+        filter.category = categoryResult.filter
+            ? categoryResult.filter
+            : { $in: activeCategoryIds };
+        filter.location = locationResult.filter
+            ? locationResult.filter
+            : { $in: activeLocationIds };
         if (businessType) filter.businessType = businessType;
 
         if (q) {
@@ -145,12 +155,12 @@ export async function GET(request) {
                 .populate({
                     path: "category",
                     select: "name slug description icon",
-                    match: { status: "active", "seo.noIndex": { $ne: true } },
+                    match: { status: "active" },
                 })
                 .populate({
                     path: "location",
                     select: "name slug type address coverImage",
-                    match: { status: "active", "seo.noIndex": { $ne: true } },
+                    match: { status: "active" },
                 })
                 .sort({ publishedAt: -1, name: 1, _id: 1 })
                 .skip(skip)
