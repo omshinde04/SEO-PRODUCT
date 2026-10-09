@@ -129,7 +129,7 @@ export default function GooglePlaceAutocomplete({
         {suggestions.map((suggestion) => <button type="button" role="option" className="google-place-suggestion" key={suggestion.placeId} onClick={() => choose(suggestion)}>
           <span className="google-place-result-pin" aria-hidden="true">⌖</span><span><strong>{suggestion.mainText}</strong>{suggestion.secondaryText && <small>{suggestion.secondaryText}</small>}</span>
         </button>)}
-        <div className="google-place-attribution"><span>Powered by</span><strong>Google</strong></div>
+        <div className="google-place-attribution"><img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png" alt="Powered by Google" width="120" height="14" /></div>
       </div>}
       {error && <p className="google-place-error" role="status">{!configured ? "Google location search needs server configuration. " : ""}{error}</p>}
     </div>
