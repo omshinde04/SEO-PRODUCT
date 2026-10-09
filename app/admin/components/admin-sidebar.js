@@ -82,7 +82,7 @@ export default function AdminSidebar({ open, onClose }) {
                     </div>
                     <div>
                         <p className="text-[15px] font-bold tracking-tight text-slate-900">
-                            SEO-PRODUCT
+                            GaavConnect
                         </p>
                         <p className="mt-0.5 text-[11px] font-medium text-slate-400">
                             Admin workspace
