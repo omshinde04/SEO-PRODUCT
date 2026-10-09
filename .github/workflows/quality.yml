@@ -16,6 +16,16 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -28,6 +38,9 @@ jobs:
         run: npm ci
       - name: Run automated tests
         run: npm test
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017/seo_product_test
+          AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-secret-000000000000000000000000
       - name: Run ESLint
         run: npm run lint
       - name: Verify production build
