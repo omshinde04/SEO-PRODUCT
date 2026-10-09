@@ -275,7 +275,7 @@ function Card({ item }) {
   );
 }
 
-function CategoryShowcaseCard({ title, item, parent, children, businessCount, slug }) {
+function CategoryShowcaseCard({ title, item, parent, subcategories = [], businessCount, slug }) {
   const icon = item?.icon || "utensils";
   return (
     <div className="saas-category-hero-card">
@@ -312,8 +312,8 @@ function CategoryShowcaseCard({ title, item, parent, children, businessCount, sl
         </div>
         <div className="cat-stat-divider" />
         <div className="cat-stat-cell">
-          <span className="cat-stat-num">{children.length}</span>
-          <span className="cat-stat-lbl">{children.length === 1 ? "Subcategory" : "Subcategories"}</span>
+          <span className="cat-stat-num">{subcategories.length}</span>
+          <span className="cat-stat-lbl">{subcategories.length === 1 ? "Subcategory" : "Subcategories"}</span>
         </div>
         <div className="cat-stat-divider" />
         <div className="cat-stat-cell">
@@ -612,7 +612,7 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                   title={title}
                   item={item}
                   parent={parent}
-                  children={children}
+                  subcategories={children}
                   businessCount={totalBusinesses}
                   slug={slug}
                 />

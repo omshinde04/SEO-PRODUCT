@@ -13,20 +13,20 @@ export default function CookieConsent() {
   const [customizing, setCustomizing] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate consent from browser storage after hydration to avoid an SSR mismatch.
-        setPreferences({ ...DEFAULTS, ...parsed, necessary: true });
-      } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Show the consent UI when browser storage cannot be read.
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved = window.localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setPreferences({ ...DEFAULTS, ...parsed, necessary: true });
+        } else {
+          setVisible(true);
+        }
+      } catch {
         setVisible(true);
       }
-    } catch {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Show consent when browser storage cannot be read.
-      setVisible(true);
-    }
+    });
+
     const openSettings = () => { setCustomizing(true); setVisible(true); };
     window.addEventListener("gaavconnect:cookie-settings", openSettings);
     const handleClick = (event) => {
@@ -34,6 +34,7 @@ export default function CookieConsent() {
     };
     document.addEventListener("click", handleClick);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener("gaavconnect:cookie-settings", openSettings);
       document.removeEventListener("click", handleClick);
     };

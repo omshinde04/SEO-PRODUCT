@@ -201,50 +201,44 @@ export default function SubmissionsClient({ user }) {
     }, []);
 
     // Auto-match category and location for quick draft
-    useEffect(() => {
-        if (!categories.length || !locations.length || !items.length) return;
-        setListingDrafts((current) => {
-            const next = { ...current };
-            for (const item of items) {
-                if (!next[item._id]?.category) {
-                    const matchedCat = categories.find(
-                        (c) =>
-                            c._id === item.category ||
-                            c._id === item.category?._id ||
-                            c.name?.toLowerCase() === item.categoryName?.toLowerCase() ||
-                            c.slug?.toLowerCase() === item.categoryName?.toLowerCase()
-                    );
-                    const matchedLoc = locations.find(
-                        (l) =>
-                            l._id === item.location ||
-                            l._id === item.location?._id ||
-                            l.name?.toLowerCase() === item.locationName?.toLowerCase() ||
-                            l.slug?.toLowerCase() === item.locationName?.toLowerCase()
-                    );
-                    next[item._id] = {
-                        category: matchedCat?._id || categories[0]?._id || "",
-                        location: matchedLoc?._id || locations[0]?._id || "",
-                        businessType: item.businessType || "business",
-                        description: item.message || "",
-                        ...(next[item._id] || {}),
-                    };
-                }
-            }
-            return next;
-        });
-    }, [categories, locations, items]);
+    const getListingDraft = useCallback((item) => {
+        const existing = listingDrafts[item._id];
+        if (existing) return existing;
+
+        const matchedCat = categories.find(
+            (c) =>
+                c._id === item.category ||
+                c._id === item.category?._id ||
+                c.name?.toLowerCase() === item.categoryName?.toLowerCase() ||
+                c.slug?.toLowerCase() === item.categoryName?.toLowerCase()
+        );
+        const matchedLoc = locations.find(
+            (l) =>
+                l._id === item.location ||
+                l._id === item.location?._id ||
+                l.name?.toLowerCase() === item.locationName?.toLowerCase() ||
+                l.slug?.toLowerCase() === item.locationName?.toLowerCase()
+        );
+
+        return {
+            category: matchedCat?._id || categories[0]?._id || "",
+            location: matchedLoc?._id || locations[0]?._id || "",
+            businessType: item.businessType || "business",
+            description: item.message || "",
+        };
+    }, [categories, locations, listingDrafts]);
 
     function updateListingDraft(id, updates, item) {
-        setListingDrafts((current) => ({
-            ...current,
-            [id]: {
-                category: current[id]?.category || categories[0]?._id || "",
-                location: current[id]?.location || locations[0]?._id || "",
-                businessType: current[id]?.businessType || "business",
-                description: current[id]?.description ?? item.message ?? "",
-                ...updates,
-            },
-        }));
+        setListingDrafts((current) => {
+            const base = current[id] || getListingDraft(item);
+            return {
+                ...current,
+                [id]: {
+                    ...base,
+                    ...updates,
+                },
+            };
+        });
     }
 
     // Opens the complete BusinessForm drawer pre-filled with all submission data
@@ -328,7 +322,7 @@ export default function SubmissionsClient({ user }) {
     }
 
     async function createListing(item, publish) {
-        const draft = listingDrafts[item._id] || {};
+        const draft = getListingDraft(item);
         const chosenCategory = draft.category || categories[0]?._id;
         const chosenLocation = draft.location || locations[0]?._id;
 
@@ -781,7 +775,7 @@ export default function SubmissionsClient({ user }) {
                                                             Category
                                                             <select
                                                                 className={`mt-1.5 ${controlClass}`}
-                                                                value={listingDrafts[item._id]?.category || ""}
+                                                                value={getListingDraft(item).category || ""}
                                                                 onChange={(e) => updateListingDraft(item._id, { category: e.target.value }, item)}
                                                             >
                                                                 <option value="">Choose active category</option>
@@ -799,7 +793,7 @@ export default function SubmissionsClient({ user }) {
                                                             Location
                                                             <select
                                                                 className={`mt-1.5 ${controlClass}`}
-                                                                value={listingDrafts[item._id]?.location || ""}
+                                                                value={getListingDraft(item).location || ""}
                                                                 onChange={(e) => updateListingDraft(item._id, { location: e.target.value }, item)}
                                                             >
                                                                 <option value="">Choose active location</option>
@@ -818,7 +812,7 @@ export default function SubmissionsClient({ user }) {
                                                             Business type
                                                             <select
                                                                 className={`mt-1.5 ${controlClass}`}
-                                                                value={listingDrafts[item._id]?.businessType || "business"}
+                                                                value={getListingDraft(item).businessType || "business"}
                                                                 onChange={(e) => updateListingDraft(item._id, { businessType: e.target.value }, item)}
                                                             >
                                                                 <option value="business">General business</option>
@@ -841,7 +835,7 @@ export default function SubmissionsClient({ user }) {
                                                                 className={`mt-1.5 ${controlClass}`}
                                                                 rows={4}
                                                                 maxLength={10000}
-                                                                value={listingDrafts[item._id]?.description ?? item.message ?? ""}
+                                                                value={getListingDraft(item).description ?? item.message ?? ""}
                                                                 onChange={(e) => updateListingDraft(item._id, { description: e.target.value }, item)}
                                                                 placeholder="Describe services, what makes the business useful, and what visitors should know."
                                                             />

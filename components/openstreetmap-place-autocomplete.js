@@ -104,7 +104,7 @@ export default function OpenStreetMapPlaceAutocomplete({
         }}>×</button>}
       </div>
       {open && suggestions.length > 0 && <div className="location-autocomplete-suggestions" id={inputId + "-suggestions"} role="listbox">
-        {suggestions.map((suggestion) => <button type="button" role="option" className="location-autocomplete-suggestion" key={suggestion.placeId} onClick={() => choose(suggestion)}>
+        {suggestions.map((suggestion) => <button type="button" role="option" aria-selected="false" className="location-autocomplete-suggestion" key={suggestion.placeId} onClick={() => choose(suggestion)}>
           <span className="location-autocomplete-result-pin" aria-hidden="true">⌖</span>
           <span><strong>{suggestion.mainText}</strong>{suggestion.secondaryText && <small>{suggestion.secondaryText}</small>}</span>
         </button>)}
