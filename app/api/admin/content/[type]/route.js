@@ -93,6 +93,11 @@ const mediaSchema = z.object({
     height: z.number().int().min(0).nullable().optional(),
 }).strict();
 
+const mediaUpdateSchema = z.object({
+    alt: z.string().trim().max(200).optional(),
+    caption: z.string().trim().max(500).optional(),
+}).strict();
+
 const settingsSchema = z.object({
     siteName: z.string().trim().min(1).max(120),
     siteUrl: httpUrl(),
@@ -378,8 +383,11 @@ export async function PATCH(request, context) {
             if (!parsed.success) return apiError("Submission update is invalid.", 400, parsed.error.issues);
             updates = { ...parsed.data, reviewedBy: auth.user.id, reviewedAt: new Date() };
         } else if (type === "media") {
-            const parsed = mediaSchema.partial().strict().safeParse(body.data);
+            const parsed = mediaUpdateSchema.safeParse(body.data);
             if (!parsed.success) return apiError("Media update is invalid.", 400, parsed.error.issues);
+            if (Object.keys(parsed.data).length === 0) {
+                return apiError("Provide alt text or a caption to update.", 400);
+            }
             updates = parsed.data;
         } else if (type === "seo-templates") {
             const parsed = templateSchema.partial().strict().safeParse(body.data);
