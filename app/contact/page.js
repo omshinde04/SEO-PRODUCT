@@ -1,4 +1,3 @@
-import Link from "next/link";
 import PublicInfoPage from "@/components/public-info-page";
 import { getStaticPageMetadata } from "@/lib/seo/static-pages";
 export const generateMetadata = () => getStaticPageMetadata("/contact");
