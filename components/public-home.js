@@ -100,7 +100,7 @@ export default function PublicHome({ initialData = null }) {
     }
   }, [submitted]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { if (!initialData) loadData(); }, [initialData, loadData]);
 
   const featuredCategories = useMemo(() => categories.slice(0, 6), [categories]);
 
