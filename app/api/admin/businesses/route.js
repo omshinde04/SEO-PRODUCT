@@ -232,6 +232,8 @@ const businessInputSchema = z
             .strict()
             .optional(),
 
+        isFeatured: z.boolean().optional().default(false),
+
         status: z
             .enum(businessStatuses)
             .optional()
