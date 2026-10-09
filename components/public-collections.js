@@ -17,7 +17,7 @@ export default function PublicCollections({ kind }) {
         const params = new URLSearchParams({ limit: "100" });
         if (query.trim()) params.set("q", query.trim());
         if (isCategory) params.set("parent", "root");
-        else params.set("type", "city");
+        else params.set("parent", "root");
         const response = await fetch(`/api/${kind}?${params}`, { signal: controller.signal });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.message || "Could not load this directory.");
