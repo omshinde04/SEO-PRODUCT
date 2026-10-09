@@ -50,6 +50,8 @@ export async function GET(request) {
             BusinessSubmission.find(filter)
                 .select("-__v")
                 .populate("business", "name slug status")
+                .populate("category", "name slug")
+                .populate("location", "name slug type")
                 .sort({ createdAt: -1, _id: -1 })
                 .skip(skip)
                 .limit(limit)

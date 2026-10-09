@@ -17,6 +17,7 @@ const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i);
 const updateSchema = z.object({
     status: z.enum(["pending", "reviewing", "approved", "rejected"]).optional(),
     adminNotes: z.string().trim().max(3000).optional(),
+    business: objectIdSchema.optional(),
 }).strict();
 const createListingSchema = z.object({
     category: objectIdSchema,
@@ -85,6 +86,13 @@ export async function PATCH(request, { params }) {
             }
         }
         if (parsed.data.adminNotes !== undefined) item.adminNotes = parsed.data.adminNotes;
+        if (parsed.data.business !== undefined) {
+            item.business = parsed.data.business;
+            item.status = "approved";
+            item.convertedAt = item.convertedAt || new Date();
+            item.reviewedBy = auth.user.id;
+            item.reviewedAt = item.reviewedAt || new Date();
+        }
         await item.save();
 
         return apiSuccess({ message: "Submission updated successfully.", item: item.toObject() });
@@ -116,7 +124,11 @@ export async function POST(request, { params }) {
         await connectDB();
         const submission = await BusinessSubmission.findById(id).exec();
         if (!submission) return apiError("Submission not found.", 404);
-        if (submission.status !== "approved") return apiError("Approve this request before creating a listing.", 409);
+        if (submission.status !== "approved") {
+            submission.status = "approved";
+            submission.reviewedBy = auth.user.id;
+            submission.reviewedAt = new Date();
+        }
         if (submission.business) return apiError("A business listing has already been created from this request.", 409);
 
         const [category, location] = await Promise.all([

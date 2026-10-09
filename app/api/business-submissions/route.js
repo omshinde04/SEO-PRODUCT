@@ -19,16 +19,35 @@ function isHttpUrl(value) {
     }
 }
 
+const hexId = z.string().regex(/^[a-f\d]{24}$/i);
+
 const schema = z.object({
     businessName: z.string().trim().min(2).max(160),
     contactName: z.string().trim().min(2).max(120),
     email: z.string().trim().toLowerCase().email().max(254),
     phone: z.string().trim().min(7).max(30).regex(/^[+()\d .-]+$/),
-    locationName: z.string().trim().max(120).optional().default(""),
+    whatsapp: z.string().trim().max(30).optional().default(""),
+    businessType: z.enum([
+        "business", "restaurant", "hotel", "professional_service",
+        "healthcare", "retail", "tourism", "attraction", "guide",
+        "event_venue", "other"
+    ]).optional().default("business"),
+    tagline: z.string().trim().max(200).optional().default(""),
+    category: hexId.nullable().optional().default(null),
     categoryName: z.string().trim().max(120).optional().default(""),
+    location: hexId.nullable().optional().default(null),
+    locationName: z.string().trim().max(120).optional().default(""),
+    address: z.object({
+        line1: z.string().trim().max(200).optional().default(""),
+        area: z.string().trim().max(120).optional().default(""),
+        city: z.string().trim().max(120).optional().default(""),
+        postalCode: z.string().trim().max(12).optional().default(""),
+        formatted: z.string().trim().max(500).optional().default(""),
+    }).strict().optional().default({}),
+    services: z.array(z.string().trim().max(120)).max(50).optional().default([]),
     website: z.string().trim().max(2048).optional().default("")
         .refine(isHttpUrl, "Website must be a valid HTTP or HTTPS URL."),
-    message: z.string().trim().max(3000).optional().default(""),
+    message: z.string().trim().max(5000).optional().default(""),
 }).strict();
 
 export async function POST(request) {
