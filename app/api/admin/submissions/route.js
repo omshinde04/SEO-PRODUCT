@@ -49,6 +49,7 @@ export async function GET(request) {
         const [items, total, counts] = await Promise.all([
             BusinessSubmission.find(filter)
                 .select("-__v")
+                .populate("business", "name slug status")
                 .sort({ createdAt: -1, _id: -1 })
                 .skip(skip)
                 .limit(limit)
