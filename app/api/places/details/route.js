@@ -54,7 +54,7 @@ export async function GET(request) {
         longitude: Number.isFinite(place.location?.longitude) ? place.location.longitude : null,
         address: {
           area: component("sublocality_level_1", "sublocality", "neighborhood", "administrative_area_level_3"),
-          city: component("locality", "postal_town", "administrative_area_level_2"),
+          city: component("locality") || component("postal_town") || component("administrative_area_level_3") || component("administrative_area_level_2"),
           district: component("administrative_area_level_2"),
           state: component("administrative_area_level_1"),
           country: component("country"),
