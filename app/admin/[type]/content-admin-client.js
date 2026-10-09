@@ -1,11 +1,10 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
-import {useParams} from "next/navigation";
+import Link from "next/link";
 const labels={places:"Places",guides:"Guides",events:"Events",submissions:"Business submissions",media:"Media library",seo:"Global SEO settings","seo-templates":"SEO templates"};
-export default function ContentAdminPage(){
- const params=useParams();const type=String(params.type||"");const [items,setItems]=useState([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [title,setTitle]=useState("");const [slug,setSlug]=useState("");const [summary,setSummary]=useState("");const [body,setBody]=useState("");const [busy,setBusy]=useState(false);
+export default function ContentAdminPage({type}){const [items,setItems]=useState([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [title,setTitle]=useState("");const [slug,setSlug]=useState("");const [summary,setSummary]=useState("");const [body,setBody]=useState("");const [busy,setBusy]=useState(false);
  const load=useCallback(async()=>{setLoading(true);setError("");try{const res=await fetch("/api/admin/content/"+encodeURIComponent(type),{cache:"no-store"});const data=await res.json();if(!res.ok||!data.success)throw new Error(data.message||"Could not load records");setItems(data.items||[]);}catch(e){setError(e.message||"Request failed");}finally{setLoading(false);}},[type]);
- useEffect(()=>{load();},[load]);
+ useEffect(()=>{let cancelled=false;queueMicrotask(()=>{if(!cancelled)load();});return()=>{cancelled=true;};},[load]);
  async function create(e){e.preventDefault();setBusy(true);setError("");try{const res=await fetch("/api/admin/content/"+encodeURIComponent(type),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,slug,summary,body,status:"draft"})});const data=await res.json();if(!res.ok||!data.success)throw new Error(data.message||"Could not create record");setTitle("");setSlug("");setSummary("");setBody("");await load();}catch(e){setError(e.message||"Request failed");}finally{setBusy(false);}}
  async function update(id,status){setError("");try{const res=await fetch("/api/admin/content/"+encodeURIComponent(type),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,data:{status}})});const data=await res.json();if(!res.ok||!data.success)throw new Error(data.message||"Update failed");await load();}catch(e){setError(e.message||"Request failed");}}
  async function remove(id){if(!window.confirm("Delete this record permanently?"))return;try{const res=await fetch("/api/admin/content/"+encodeURIComponent(type)+"?id="+encodeURIComponent(id),{method:"DELETE"});const data=await res.json();if(!res.ok||!data.success)throw new Error(data.message||"Delete failed");await load();}catch(e){setError(e.message||"Request failed");}}
