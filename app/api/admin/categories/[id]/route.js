@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
 import Category from "@/models/Category";
+import Business from "@/models/Business";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
@@ -281,6 +282,18 @@ export async function DELETE(_request, { params }) {
                 message: "Category is already inactive.",
                 item: category.toObject(),
             });
+        }
+
+        // Do not deactivate a category while any business still references it.
+        // The public API only exposes businesses with active categories, so
+        // allowing this would make existing business pages disappear.
+        const linkedBusiness = await Business.exists({ category: category._id });
+
+        if (linkedBusiness) {
+            return apiError(
+                "This category is referenced by businesses. Reassign those businesses before deactivating it.",
+                409
+            );
         }
 
         category.status = "inactive";
