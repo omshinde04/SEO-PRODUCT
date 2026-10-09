@@ -1,6 +1,8 @@
 
 "use client";
 
+import Link from "next/link";
+
 import { useCallback, useEffect, useState } from "react";
 import StatCard from "../components/stat-card";
 import StatusBadge from "../components/status-badge";
@@ -17,6 +19,7 @@ const initialStats = {
     },
     categories: { total: 0, active: 0, inactive: 0 },
     locations: { total: 0, active: 0, inactive: 0 },
+    places: { total: 0, published: 0 }, guides: { total: 0, published: 0 }, events: { total: 0, published: 0 }, submissions: { pending: 0 },
 };
 
 function formatDate(value) {
@@ -218,6 +221,10 @@ export default function DashboardClient({ user }) {
                     ...initialStats.locations,
                     ...(data.stats?.locations || {}),
                 },
+                places: { ...initialStats.places, ...(data.stats?.places || {}) },
+                guides: { ...initialStats.guides, ...(data.stats?.guides || {}) },
+                events: { ...initialStats.events, ...(data.stats?.events || {}) },
+                submissions: { ...initialStats.submissions, ...(data.stats?.submissions || {}) },
             });
 
             setBusinesses(
@@ -286,6 +293,10 @@ export default function DashboardClient({ user }) {
             icon: "locations",
             tone: "slate",
         },
+        { title: "Places", value: stats.places.total, description: stats.places.published + " published", icon: "locations", tone: "blue" },
+        { title: "Guides", value: stats.guides.total, description: stats.guides.published + " published", icon: "categories", tone: "violet" },
+        { title: "Events", value: stats.events.total, description: stats.events.published + " published", icon: "published", tone: "green" },
+        { title: "Pending submissions", value: stats.submissions.pending, description: "Awaiting admin review", icon: "pending", tone: "amber" },
         {
             title: "Pending verification",
             value: stats.businesses.pendingVerification,
@@ -412,6 +423,26 @@ export default function DashboardClient({ user }) {
                             </section>
                         </>
                     )}
+
+                    <section className="mt-8">
+                        <h2 className="mb-3 text-sm font-bold text-slate-900">Quick actions</h2>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                            {[
+                                ["Add business", "/admin/businesses"],
+                                ["Add place", "/admin/places"],
+                                ["Write guide", "/admin/guides"],
+                                ["Add event", "/admin/events"],
+                                ["Review submissions", "/admin/submissions"],
+                            ].map(([label, href]) => (
+                                <Link key={href} href={href} className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">{label} <span aria-hidden="true">→</span></Link>
+                            ))}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                            <Link href="/admin/media" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">Media library</Link>
+                            <Link href="/admin/seo" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO settings</Link>
+                            <Link href="/admin/seo-templates" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO templates</Link>
+                        </div>
+                    </section>
 
                     <footer className="mt-10 flex flex-col gap-2 border-t border-slate-200/80 py-5 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
                         <p>SEO-PRODUCT · Admin workspace</p>

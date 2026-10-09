@@ -20,10 +20,12 @@ const navigation = [
 ];
 
 const secondaryNavigation = [
-    { label: "Places & guides", icon: "book" },
-    { label: "Events", icon: "calendar" },
-    { label: "Media library", icon: "image" },
-    { label: "Submissions", icon: "inbox" },
+    { label: "Places", href: "/admin/places", icon: "book" },
+    { label: "Guides", href: "/admin/guides", icon: "book" },
+    { label: "Events", href: "/admin/events", icon: "calendar" },
+    { label: "Media library", href: "/admin/media", icon: "image" },
+    { label: "Submissions", href: "/admin/submissions", icon: "inbox" },
+    { label: "SEO templates", href: "/admin/seo-templates", icon: "search" },
 ];
 
 function NavIcon({ name, size = 18 }) {
@@ -141,17 +143,16 @@ export default function AdminSidebar({ open, onClose }) {
                     </p>
 
                     <div className="space-y-1">
-                        {secondaryNavigation.map((item) => (
-                            <div
-                                key={item.label}
-                                title="This module is not implemented yet"
-                                className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-xl px-3 text-[13px] font-medium text-slate-400"
-                            >
-                                <NavIcon name={item.icon} />
-                                <span className="flex-1">{item.label}</span>
-                                <span className="text-[9px] font-semibold">SOON</span>
-                            </div>
-                        ))}
+                        {secondaryNavigation.map((item) => {
+                            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                            return (
+                                <Link key={item.href} href={item.href} onClick={onClose} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition ${active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                    <NavIcon name={item.icon} />
+                                    <span className="flex-1">{item.label}</span>
+                                    {active && <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />}
+                                </Link>
+                            );
+                        })}
                     </div>
                 </div>
 

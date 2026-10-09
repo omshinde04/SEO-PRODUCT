@@ -1,0 +1,5 @@
+import mongoose from "mongoose";
+const {Schema}=mongoose;
+const schema=new Schema({businessName:{type:String,required:true,trim:true,minlength:2,maxlength:160},contactName:{type:String,required:true,trim:true,minlength:2,maxlength:120},email:{type:String,required:true,trim:true,lowercase:true,maxlength:254},phone:{type:String,required:true,trim:true,maxlength:30},locationName:{type:String,trim:true,maxlength:120,default:""},categoryName:{type:String,trim:true,maxlength:120,default:""},website:{type:String,trim:true,maxlength:2048,default:""},message:{type:String,trim:true,maxlength:3000,default:""},status:{type:String,enum:["pending","reviewing","approved","rejected"],default:"pending",index:true},adminNotes:{type:String,trim:true,maxlength:3000,default:""},reviewedBy:{type:Schema.Types.ObjectId,ref:"User",default:null},reviewedAt:{type:Date,default:null}},{timestamps:true,versionKey:false,strict:"throw"});
+schema.index({status:1,createdAt:-1});schema.index({email:1,createdAt:-1});
+export default mongoose.models.BusinessSubmission||mongoose.model("BusinessSubmission",schema);
