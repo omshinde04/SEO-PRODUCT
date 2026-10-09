@@ -9,6 +9,16 @@ import { enforceSubmissionRateLimit } from "@/lib/auth/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isHttpUrl(value) {
+    if (!value) return true;
+    try {
+        const parsed = new URL(value);
+        return ["http:", "https:"].includes(parsed.protocol) && Boolean(parsed.hostname);
+    } catch {
+        return false;
+    }
+}
+
 const schema = z.object({
     businessName: z.string().trim().min(2).max(160),
     contactName: z.string().trim().min(2).max(120),
@@ -17,7 +27,7 @@ const schema = z.object({
     locationName: z.string().trim().max(120).optional().default(""),
     categoryName: z.string().trim().max(120).optional().default(""),
     website: z.string().trim().max(2048).optional().default("")
-        .refine((value) => !value || /^https?:\/\//i.test(value)),
+        .refine(isHttpUrl, "Website must be a valid HTTP or HTTPS URL."),
     message: z.string().trim().max(3000).optional().default(""),
 }).strict();
 
