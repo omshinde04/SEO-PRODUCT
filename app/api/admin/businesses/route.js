@@ -8,6 +8,13 @@ import Category from "@/models/Category";
 import Location from "@/models/Location";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
+import {
+    optionalUrlSchema,
+    requiredUrlSchema,
+    weeklyHoursSchema,
+    validateCoordinatePair,
+    validatePublishedBusiness,
+} from "@/lib/business/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,28 +71,9 @@ const optionalText = (max) =>
 
 const imageSchema = z
     .object({
-        url: z.string().trim().min(1).max(2048),
+        url: requiredUrlSchema,
         publicId: z.string().trim().min(1).max(300),
         alt: z.string().trim().max(200).optional().default(""),
-    })
-    .strict();
-
-const openingPeriodSchema = z
-    .object({
-        open: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-        close: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-    })
-    .strict();
-
-const weeklyHoursSchema = z
-    .object({
-        monday: z.array(openingPeriodSchema).max(10).optional(),
-        tuesday: z.array(openingPeriodSchema).max(10).optional(),
-        wednesday: z.array(openingPeriodSchema).max(10).optional(),
-        thursday: z.array(openingPeriodSchema).max(10).optional(),
-        friday: z.array(openingPeriodSchema).max(10).optional(),
-        saturday: z.array(openingPeriodSchema).max(10).optional(),
-        sunday: z.array(openingPeriodSchema).max(10).optional(),
     })
     .strict();
 
@@ -118,8 +106,14 @@ const businessInputSchema = z
                 phone: optionalText(30),
                 alternatePhone: optionalText(30),
                 whatsapp: optionalText(30),
-                email: z.string().trim().email().max(254).or(z.literal("")).optional(),
-                website: z.string().trim().max(2048).optional(),
+                email: z
+                    .string()
+                    .trim()
+                    .email()
+                    .max(254)
+                    .or(z.literal(""))
+                    .optional(),
+                website: optionalUrlSchema.optional(),
                 preferredMethod: z.enum(preferredMethods).optional(),
             })
             .strict()
@@ -128,18 +122,22 @@ const businessInputSchema = z
 
         socialLinks: z
             .object({
-                instagram: optionalText(2048),
-                facebook: optionalText(2048),
-                youtube: optionalText(2048),
-                linkedin: optionalText(2048),
-                x: optionalText(2048),
-                tiktok: optionalText(2048),
+                instagram: optionalUrlSchema.optional(),
+                facebook: optionalUrlSchema.optional(),
+                youtube: optionalUrlSchema.optional(),
+                linkedin: optionalUrlSchema.optional(),
+                x: optionalUrlSchema.optional(),
+                tiktok: optionalUrlSchema.optional(),
                 other: z
                     .array(
                         z
                             .object({
-                                platform: z.string().trim().min(1).max(50),
-                                url: z.string().trim().min(1).max(2048),
+                                platform: z
+                                    .string()
+                                    .trim()
+                                    .min(1)
+                                    .max(50),
+                                url: requiredUrlSchema,
                             })
                             .strict()
                     )
@@ -168,13 +166,26 @@ const businessInputSchema = z
 
         coordinates: z
             .object({
-                latitude: z.number().min(-90).max(90).nullable().optional(),
-                longitude: z.number().min(-180).max(180).nullable().optional(),
+                latitude: z
+                    .number()
+                    .min(-90)
+                    .max(90)
+                    .nullable()
+                    .optional(),
+                longitude: z
+                    .number()
+                    .min(-180)
+                    .max(180)
+                    .nullable()
+                    .optional(),
             })
             .strict()
             .optional(),
 
-        serviceAreas: z.array(z.string().trim().min(1).max(120)).max(50).optional(),
+        serviceAreas: z
+            .array(z.string().trim().min(1).max(120))
+            .max(50)
+            .optional(),
 
         openingHours: z
             .object({
@@ -185,10 +196,25 @@ const businessInputSchema = z
             .strict()
             .optional(),
 
-        services: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
-        amenities: z.array(z.string().trim().min(1).max(80)).max(100).optional(),
-        paymentMethods: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
-        languages: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
+        services: z
+            .array(z.string().trim().min(1).max(120))
+            .max(100)
+            .optional(),
+
+        amenities: z
+            .array(z.string().trim().min(1).max(80))
+            .max(100)
+            .optional(),
+
+        paymentMethods: z
+            .array(z.string().trim().min(1).max(50))
+            .max(30)
+            .optional(),
+
+        languages: z
+            .array(z.string().trim().min(1).max(50))
+            .max(30)
+            .optional(),
 
         priceRange: z.enum(priceRanges).optional(),
 
@@ -200,13 +226,17 @@ const businessInputSchema = z
             .object({
                 title: optionalText(70),
                 description: optionalText(170),
-                canonicalUrl: optionalText(2048),
+                canonicalUrl: optionalUrlSchema.optional(),
                 noIndex: z.boolean().optional(),
             })
             .strict()
             .optional(),
 
-        status: z.enum(businessStatuses).optional().default("draft"),
+        status: z
+            .enum(businessStatuses)
+            .optional()
+            .default("draft"),
+
         verificationStatus: z
             .enum(verificationStatuses)
             .optional()
@@ -230,27 +260,6 @@ function escapeRegex(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function validateCoordinates(coordinates) {
-    if (!coordinates) return null;
-
-    const hasLatitude =
-        coordinates.latitude !== undefined &&
-        coordinates.latitude !== null;
-
-    const hasLongitude =
-        coordinates.longitude !== undefined &&
-        coordinates.longitude !== null;
-
-    if (hasLatitude !== hasLongitude) {
-        return apiError(
-            "Provide both latitude and longitude, or leave both empty.",
-            400
-        );
-    }
-
-    return null;
-}
-
 async function validateReferences(categoryId, locationId) {
     if (
         !mongoose.isValidObjectId(categoryId) ||
@@ -264,6 +273,7 @@ async function validateReferences(categoryId, locationId) {
             .select("_id status")
             .lean()
             .exec(),
+
         Location.findById(locationId)
             .select("_id status")
             .lean()
@@ -284,23 +294,6 @@ async function validateReferences(categoryId, locationId) {
 
     if (location.status !== "active") {
         return apiError("Select an active location.", 409);
-    }
-
-    return null;
-}
-
-function validatePublication(data) {
-    if (data.status !== "published") return null;
-
-    if (!data.name || !data.description?.trim()) {
-        return apiError(
-            "A published business must have a name and description.",
-            400
-        );
-    }
-
-    if (data.seo?.noIndex === true) {
-        return null;
     }
 
     return null;
@@ -394,6 +387,7 @@ export async function GET(request) {
                 .limit(limit)
                 .lean()
                 .exec(),
+
             Business.countDocuments(filter),
         ]);
 
@@ -451,13 +445,22 @@ export async function POST(request) {
 
         const data = validation.data;
 
-        const coordinateError = validateCoordinates(data.coordinates);
+        if (data.coordinates) {
+            const coordinateError = validateCoordinatePair(
+                {},
+                data.coordinates
+            );
 
-        if (coordinateError) return coordinateError;
+            if (coordinateError) {
+                return apiError(coordinateError, 400);
+            }
+        }
 
-        const publicationError = validatePublication(data);
+        const publicationError = validatePublishedBusiness(data);
 
-        if (publicationError) return publicationError;
+        if (publicationError) {
+            return apiError(publicationError, 400);
+        }
 
         await connectDB();
 
@@ -484,7 +487,8 @@ export async function POST(request) {
             ...data,
             createdBy: auth.user.id,
             updatedBy: auth.user.id,
-            publishedAt: data.status === "published" ? new Date() : null,
+            publishedAt:
+                data.status === "published" ? new Date() : null,
         });
 
         const item = await Business.findById(business._id)
@@ -503,11 +507,17 @@ export async function POST(request) {
         );
     } catch (error) {
         if (isDuplicateKey(error)) {
-            return apiError("A business with this slug already exists.", 409);
+            return apiError(
+                "A business with this slug already exists.",
+                409
+            );
         }
 
         if (isDatabaseValidationError(error)) {
-            return apiError("Business data failed database validation.", 400);
+            return apiError(
+                "Business data failed database validation.",
+                400
+            );
         }
 
         console.error("[BUSINESSES] Create failed:", error.message);

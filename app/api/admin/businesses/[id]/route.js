@@ -8,112 +8,135 @@ import Category from "@/models/Category";
 import Location from "@/models/Location";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
+import {
+    optionalUrlSchema,
+    requiredUrlSchema,
+    weeklyHoursSchema,
+    validateCoordinatePair,
+    validatePublishedBusiness,
+    validateWeeklyHours,
+} from "@/lib/business/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i);
 
-const urlSchema = z.string().trim().max(2048).refine(
-    (value) => {
-        if (!value) return true;
+const businessTypes = [
+    "business",
+    "restaurant",
+    "hotel",
+    "professional_service",
+    "healthcare",
+    "retail",
+    "tourism",
+    "attraction",
+    "guide",
+    "event_venue",
+    "other",
+];
 
-        try {
-            const url = new URL(value);
-            return ["http:", "https:"].includes(url.protocol);
-        } catch {
-            return false;
-        }
-    },
-    "Enter a valid HTTP or HTTPS URL."
-);
+const businessStatuses = ["draft", "published", "archived"];
+
+const verificationStatuses = [
+    "unverified",
+    "pending",
+    "verified",
+    "rejected",
+];
+
+const priceRanges = [
+    "budget",
+    "moderate",
+    "premium",
+    "luxury",
+    "not_applicable",
+];
+
+const preferredMethods = [
+    "phone",
+    "whatsapp",
+    "email",
+    "website",
+    "any",
+];
+
+const optionalText = (max) =>
+    z.string().trim().max(max);
 
 const imageSchema = z.object({
-    url: urlSchema,
+    url: requiredUrlSchema,
     publicId: z.string().trim().min(1).max(300),
     alt: z.string().trim().max(200).optional(),
 }).strict();
 
-const openingPeriodSchema = z.object({
-    open: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-    close: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-}).strict().refine(
-    (period) => period.open !== period.close,
-    "Opening and closing times cannot be identical."
-);
-
-const weeklyHoursSchema = z.object({
-    monday: z.array(openingPeriodSchema).max(10),
-    tuesday: z.array(openingPeriodSchema).max(10),
-    wednesday: z.array(openingPeriodSchema).max(10),
-    thursday: z.array(openingPeriodSchema).max(10),
-    friday: z.array(openingPeriodSchema).max(10),
-    saturday: z.array(openingPeriodSchema).max(10),
-    sunday: z.array(openingPeriodSchema).max(10),
-}).partial().strict();
-
 const businessPatchSchema = z.object({
     name: z.string().trim().min(2).max(160),
-    slug: z.string().trim().toLowerCase().min(1).max(180)
+
+    slug: z.string()
+        .trim()
+        .toLowerCase()
+        .min(1)
+        .max(180)
         .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+
     tagline: z.string().trim().max(200),
     description: z.string().trim().max(10000),
-    businessType: z.enum([
-        "business",
-        "restaurant",
-        "hotel",
-        "professional_service",
-        "healthcare",
-        "retail",
-        "tourism",
-        "attraction",
-        "guide",
-        "event_venue",
-        "other",
-    ]),
-    establishedYear: z.number().int().min(1800)
-        .max(new Date().getFullYear()).nullable(),
+
+    businessType: z.enum(businessTypes),
+
+    establishedYear: z.number()
+        .int()
+        .min(1800)
+        .max(new Date().getFullYear())
+        .nullable(),
 
     category: objectIdSchema,
     location: objectIdSchema,
 
     contact: z.object({
-        phone: z.string().trim().max(30),
-        alternatePhone: z.string().trim().max(30),
-        whatsapp: z.string().trim().max(30),
-        email: z.string().trim().max(254).refine(
-            (value) => !value || z.string().email().safeParse(value).success,
-            "Enter a valid email address."
-        ),
-        website: urlSchema,
-        preferredMethod: z.enum([
-            "phone", "whatsapp", "email", "website", "any",
-        ]),
+        phone: optionalText(30),
+        alternatePhone: optionalText(30),
+        whatsapp: optionalText(30),
+        email: z.string()
+            .trim()
+            .max(254)
+            .refine(
+                (value) =>
+                    !value ||
+                    z.string().email().safeParse(value).success,
+                "Enter a valid email address."
+            ),
+        website: optionalUrlSchema,
+        preferredMethod: z.enum(preferredMethods),
     }).partial().strict(),
 
     socialLinks: z.object({
-        instagram: urlSchema,
-        facebook: urlSchema,
-        youtube: urlSchema,
-        linkedin: urlSchema,
-        x: urlSchema,
-        tiktok: urlSchema,
-        other: z.array(z.object({
-            platform: z.string().trim().min(1).max(50),
-            url: urlSchema.refine((value) => value.length > 0),
-        }).strict()).max(30),
+        instagram: optionalUrlSchema,
+        facebook: optionalUrlSchema,
+        youtube: optionalUrlSchema,
+        linkedin: optionalUrlSchema,
+        x: optionalUrlSchema,
+        tiktok: optionalUrlSchema,
+
+        other: z.array(
+            z.object({
+                platform: z.string().trim().min(1).max(50),
+                url: requiredUrlSchema,
+            }).strict()
+        ).max(20),
     }).partial().strict(),
 
     address: z.object({
-        line1: z.string().trim().max(200),
-        line2: z.string().trim().max(200),
-        area: z.string().trim().max(120),
-        city: z.string().trim().max(120),
-        district: z.string().trim().max(120),
-        state: z.string().trim().max(120),
-        country: z.string().trim().max(80),
-        postalCode: z.string().trim().max(12),
-        formatted: z.string().trim().max(500),
+        line1: optionalText(200),
+        line2: optionalText(200),
+        area: optionalText(120),
+        city: optionalText(120),
+        district: optionalText(120),
+        state: optionalText(120),
+        country: optionalText(80),
+        postalCode: optionalText(12),
+        formatted: optionalText(500),
     }).partial().strict(),
 
     coordinates: z.object({
@@ -121,20 +144,33 @@ const businessPatchSchema = z.object({
         longitude: z.number().min(-180).max(180).nullable(),
     }).partial().strict(),
 
-    serviceAreas: z.array(z.string().trim().min(1).max(120)).max(50),
+    serviceAreas: z.array(
+        z.string().trim().min(1).max(120)
+    ).max(50),
+
     openingHours: z.object({
         timezone: z.string().trim().min(1).max(100),
         notes: z.string().trim().max(500),
         weekly: weeklyHoursSchema,
     }).partial().strict(),
 
-    services: z.array(z.string().trim().min(1).max(120)).max(100),
-    amenities: z.array(z.string().trim().min(1).max(80)).max(100),
-    paymentMethods: z.array(z.string().trim().min(1).max(50)).max(30),
-    languages: z.array(z.string().trim().min(1).max(50)).max(30),
-    priceRange: z.enum([
-        "budget", "moderate", "premium", "luxury", "not_applicable",
-    ]),
+    services: z.array(
+        z.string().trim().min(1).max(120)
+    ).max(100),
+
+    amenities: z.array(
+        z.string().trim().min(1).max(80)
+    ).max(100),
+
+    paymentMethods: z.array(
+        z.string().trim().min(1).max(50)
+    ).max(30),
+
+    languages: z.array(
+        z.string().trim().min(1).max(50)
+    ).max(30),
+
+    priceRange: z.enum(priceRanges),
 
     logo: imageSchema.nullable(),
     coverImage: imageSchema.nullable(),
@@ -143,14 +179,12 @@ const businessPatchSchema = z.object({
     seo: z.object({
         title: z.string().trim().max(70),
         description: z.string().trim().max(170),
-        canonicalUrl: urlSchema,
+        canonicalUrl: optionalUrlSchema,
         noIndex: z.boolean(),
     }).partial().strict(),
 
-    status: z.enum(["draft", "published", "archived"]),
-    verificationStatus: z.enum([
-        "unverified", "pending", "verified", "rejected",
-    ]),
+    status: z.enum(businessStatuses),
+    verificationStatus: z.enum(verificationStatuses),
 }).partial().strict();
 
 function isDuplicateKey(error) {
@@ -165,26 +199,24 @@ function isDatabaseValidationError(error) {
     ].includes(error?.name);
 }
 
-function validateCoordinateMerge(current, updates) {
-    const latitude = updates.latitude !== undefined
-        ? updates.latitude
-        : current?.latitude ?? null;
-
-    const longitude = updates.longitude !== undefined
-        ? updates.longitude
-        : current?.longitude ?? null;
-
-    if ((latitude === null) !== (longitude === null)) {
-        return "Latitude and longitude must both be null or both be numbers.";
+async function validateReferences(categoryId, locationId) {
+    if (
+        !mongoose.isValidObjectId(categoryId) ||
+        !mongoose.isValidObjectId(locationId)
+    ) {
+        return apiError("Invalid category or location ID.", 400);
     }
 
-    return null;
-}
-
-async function validateReferences(categoryId, locationId) {
     const [category, location] = await Promise.all([
-        Category.findById(categoryId).select("_id status").lean().exec(),
-        Location.findById(locationId).select("_id status").lean().exec(),
+        Category.findById(categoryId)
+            .select("_id status")
+            .lean()
+            .exec(),
+
+        Location.findById(locationId)
+            .select("_id status")
+            .lean()
+            .exec(),
     ]);
 
     if (!category) {
@@ -206,30 +238,6 @@ async function validateReferences(categoryId, locationId) {
     return null;
 }
 
-function validatePublication(business) {
-    if (business.status !== "published") return null;
-
-    if (!business.name?.trim() || !business.description?.trim()) {
-        return apiError(
-            "A business must have a name and description before publishing.",
-            400
-        );
-    }
-
-    if (!business.category || !business.location) {
-        return apiError(
-            "A business must have a category and location before publishing.",
-            400
-        );
-    }
-
-    if (business.seo?.noIndex === true) {
-        return null;
-    }
-
-    return null;
-}
-
 function serializeBusinessQuery(query) {
     return query
         .select("-internalNotes")
@@ -244,6 +252,7 @@ function serializeBusinessQuery(query) {
  */
 export async function GET(_request, { params }) {
     const auth = await requireAdmin();
+
     if (auth.response) return auth.response;
 
     try {
@@ -275,6 +284,7 @@ export async function GET(_request, { params }) {
  */
 export async function PATCH(request, { params }) {
     const auth = await requireAdmin();
+
     if (auth.response) return auth.response;
 
     try {
@@ -285,6 +295,7 @@ export async function PATCH(request, { params }) {
         }
 
         const contentType = request.headers.get("content-type") || "";
+
         if (
             contentType.split(";")[0].trim().toLowerCase() !==
             "application/json"
@@ -293,6 +304,7 @@ export async function PATCH(request, { params }) {
         }
 
         let body;
+
         try {
             body = await request.json();
         } catch {
@@ -300,6 +312,7 @@ export async function PATCH(request, { params }) {
         }
 
         const validation = businessPatchSchema.safeParse(body);
+
         if (!validation.success) {
             return apiError(
                 "Business update data is invalid.",
@@ -312,6 +325,7 @@ export async function PATCH(request, { params }) {
         }
 
         const updates = validation.data;
+
         if (Object.keys(updates).length === 0) {
             return apiError("Provide at least one field to update.", 400);
         }
@@ -319,26 +333,42 @@ export async function PATCH(request, { params }) {
         await connectDB();
 
         const business = await Business.findById(id).exec();
+
         if (!business) {
             return apiError("Business not found.", 404);
         }
 
-        const nextCategory = updates.category ?? String(business.category);
-        const nextLocation = updates.location ?? String(business.location);
+        const nextCategory =
+            updates.category ?? String(business.category);
 
-        if (updates.category !== undefined || updates.location !== undefined) {
+        const nextLocation =
+            updates.location ?? String(business.location);
+
+        const nextStatus = updates.status ?? business.status;
+
+        // Published businesses must always reference active records.
+        if (
+            updates.category !== undefined ||
+            updates.location !== undefined ||
+            nextStatus === "published"
+        ) {
             const referenceError = await validateReferences(
                 nextCategory,
                 nextLocation
             );
+
             if (referenceError) return referenceError;
         }
 
+        // Validate coordinates after merging the partial update.
         if (updates.coordinates) {
-            const coordinateError = validateCoordinateMerge(
+            const currentCoordinates =
                 business.coordinates?.toObject
                     ? business.coordinates.toObject()
-                    : business.coordinates,
+                    : business.coordinates ?? {};
+
+            const coordinateError = validateCoordinatePair(
+                currentCoordinates,
                 updates.coordinates
             );
 
@@ -347,29 +377,66 @@ export async function PATCH(request, { params }) {
             }
         }
 
-        // Validate the merged record before saving a published listing.
-        const nextStatus = updates.status ?? business.status;
-        const nextName = updates.name ?? business.name;
-        const nextDescription = updates.description ?? business.description;
+        // Validate the complete weekly schedule, not only the patch.
+        if (updates.openingHours?.weekly) {
+            const currentWeekly =
+                business.openingHours?.weekly?.toObject
+                    ? business.openingHours.weekly.toObject()
+                    : business.openingHours?.weekly ?? {};
 
-        if (
-            nextStatus === "published" &&
-            (!nextName?.trim() || !nextDescription?.trim())
-        ) {
-            return apiError(
-                "A business must have a name and description before publishing.",
-                400
-            );
+            const nextWeekly = { ...currentWeekly };
+
+            for (const [day, periods] of Object.entries(
+                updates.openingHours.weekly
+            )) {
+                nextWeekly[day] = periods;
+            }
+
+            const hoursErrors = validateWeeklyHours(nextWeekly);
+
+            if (hoursErrors) {
+                return apiError(
+                    "Opening hours are invalid.",
+                    400,
+                    hoursErrors
+                );
+            }
         }
 
-        if (updates.slug !== undefined && updates.slug !== business.slug) {
+        const nextName = updates.name ?? business.name;
+        const nextDescription =
+            updates.description ?? business.description;
+
+        const publicationError = validatePublishedBusiness({
+            ...business.toObject(),
+            name: nextName,
+            description: nextDescription,
+            category: nextCategory,
+            location: nextLocation,
+            status: nextStatus,
+        });
+
+        if (publicationError) {
+            return apiError(publicationError, 400);
+        }
+
+        if (
+            updates.slug !== undefined &&
+            updates.slug !== business.slug
+        ) {
             const duplicate = await Business.findOne({
                 _id: { $ne: business._id },
                 slug: updates.slug,
-            }).select("_id").lean().exec();
+            })
+                .select("_id")
+                .lean()
+                .exec();
 
             if (duplicate) {
-                return apiError("A business with this slug already exists.", 409);
+                return apiError(
+                    "A business with this slug already exists.",
+                    409
+                );
             }
         }
 
@@ -390,7 +457,10 @@ export async function PATCH(request, { params }) {
                 for (const [nestedKey, nestedValue] of Object.entries(value)) {
                     if (key === "openingHours" && nestedKey === "weekly") {
                         for (const [day, periods] of Object.entries(nestedValue)) {
-                            business.set(`openingHours.weekly.${day}`, periods);
+                            business.set(
+                                `openingHours.weekly.${day}`,
+                                periods
+                            );
                         }
                     } else {
                         business.set(`${key}.${nestedKey}`, nestedValue);
@@ -409,9 +479,6 @@ export async function PATCH(request, { params }) {
 
         business.updatedBy = auth.user.id;
 
-        const publicationError = validatePublication(business);
-        if (publicationError) return publicationError;
-
         await business.save();
 
         const item = await serializeBusinessQuery(
@@ -424,11 +491,17 @@ export async function PATCH(request, { params }) {
         });
     } catch (error) {
         if (isDuplicateKey(error)) {
-            return apiError("A business with this slug already exists.", 409);
+            return apiError(
+                "A business with this slug already exists.",
+                409
+            );
         }
 
         if (isDatabaseValidationError(error)) {
-            return apiError("Business data failed database validation.", 400);
+            return apiError(
+                "Business data failed database validation.",
+                400
+            );
         }
 
         console.error("[BUSINESSES] Update failed:", error.message);
@@ -442,6 +515,7 @@ export async function PATCH(request, { params }) {
  */
 export async function DELETE(_request, { params }) {
     const auth = await requireAdmin();
+
     if (auth.response) return auth.response;
 
     try {
@@ -454,19 +528,25 @@ export async function DELETE(_request, { params }) {
         await connectDB();
 
         const business = await Business.findById(id).exec();
+
         if (!business) {
             return apiError("Business not found.", 404);
         }
 
         if (business.status === "archived") {
+            const item = await serializeBusinessQuery(
+                Business.findById(business._id)
+            );
+
             return apiSuccess({
                 message: "Business is already archived.",
-                item: business.toObject(),
+                item,
             });
         }
 
         business.status = "archived";
         business.updatedBy = auth.user.id;
+
         await business.save();
 
         const item = await serializeBusinessQuery(
@@ -479,7 +559,10 @@ export async function DELETE(_request, { params }) {
         });
     } catch (error) {
         if (isDatabaseValidationError(error)) {
-            return apiError("Business data failed database validation.", 400);
+            return apiError(
+                "Business data failed database validation.",
+                400
+            );
         }
 
         console.error("[BUSINESSES] Archive failed:", error.message);
