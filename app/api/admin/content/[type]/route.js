@@ -57,15 +57,15 @@ const contentSchema = z
         title: z.string().trim().min(2).max(180),
         slug: z.string().trim().toLowerCase().min(1).max(200)
             .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-        summary: z.string().trim().max(500).optional().default(""),
-        body: z.string().trim().max(50000).optional().default(""),
-        status: z.enum(["draft", "published", "archived"]).optional().default("draft"),
-        location: z.string().regex(/^[a-f\d]{24}$/i).nullable().optional().default(null),
+        summary: z.string().trim().max(500).optional(),
+        body: z.string().trim().max(50000).optional(),
+        status: z.enum(["draft", "published", "archived"]).optional(),
+        location: z.string().regex(/^[a-f\d]{24}$/i).nullable().optional(),
         coverImage: z.object({
-            url: httpUrl().optional().default(""),
-            publicId: z.string().trim().max(300).optional().default(""),
-            alt: z.string().trim().max(200).optional().default(""),
-        }).strict().optional().default({}),
+            url: httpUrl().optional(),
+            publicId: z.string().trim().max(300).optional(),
+            alt: z.string().trim().max(200).optional(),
+        }).strict().optional(),
         event: eventSchema.optional(),
         seo: z.object({
             title: z.string().trim().max(70).optional(),
@@ -278,7 +278,11 @@ export async function POST(request, context) {
         if (resource.kind) {
             const parsed = contentSchema.safeParse(parsedBody.body);
             if (!parsed.success) return apiError("Content data is invalid.", 400, parsed.error.issues);
-            data = parsed.data;
+            data = {
+                ...parsed.data,
+                status: parsed.data.status ?? "draft",
+                location: parsed.data.location ?? null,
+            };
 
             if (data.status === "published") {
                 const validationError = validatePublishedContent(resource.kind, data);
