@@ -426,7 +426,7 @@ export async function DELETE(request, context) {
             const media = await resource.model.findById(id).lean().exec();
             if (!media) return apiError("Media record not found.", 404);
 
-            const [businessReference, locationReference, contentReference] = await Promise.all([
+            const [businessReference, locationReference, contentReference, seoReference] = await Promise.all([
                 Business.exists({
                     $or: [
                         { "logo.publicId": media.publicId },
@@ -456,13 +456,6 @@ export async function DELETE(request, context) {
                     ],
                 }),
             ]);
-
-            const seoReference = await SEOSettings.exists({
-                $or: [
-                    { defaultImage: media.url },
-                    { organizationLogo: media.url },
-                ],
-            });
 
             if (businessReference || locationReference || contentReference || seoReference) {
                 return apiError(
