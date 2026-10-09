@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/auth/session";
 import AdminShell from "./admin-shell";
 
