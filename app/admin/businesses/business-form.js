@@ -758,7 +758,8 @@ export default function BusinessForm({ business, onClose, onSaved }) {
 
                         <Section title="Gallery images" description="Upload up to 20 gallery images. Add alt text to improve accessibility.">
                             <div className="sm:col-span-2">
-                                <Field label={`Gallery images (${form.images.length}/20)`}>
+                                <div className={labelClass}>
+                                    <span>Gallery images ({form.images.length}/20)</span>
                                     <input
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp,image/avif"
@@ -785,7 +786,7 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                                             ))}
                                         </div>
                                     )}
-                                </Field>
+                                </div>
                             </div>
                         </Section>
 
