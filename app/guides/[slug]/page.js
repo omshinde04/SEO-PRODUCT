@@ -67,23 +67,26 @@ function parseBodyToSections(body = "") {
 }
 
 async function getGuide(slug) {
-  if (staticGuides[slug]) return staticGuides[slug];
   try {
     await connectDB();
     const item = await ContentItem.findOne({ slug, kind: "guide", status: "published" })
       .populate("location", "name slug")
       .lean();
-    if (!item) return null;
-    return {
-      title: item.title,
-      description: item.summary || item.title,
-      location: item.location?.name || null,
-      coverImage: item.coverImage || null,
-      sections: parseBodyToSections(item.body),
-    };
-  } catch {
-    return null;
+    if (item) {
+      return {
+        title: item.title,
+        description: item.summary || item.title,
+        location: item.location?.name || null,
+        coverImage: item.coverImage?.url ? item.coverImage : null,
+        sections: parseBodyToSections(item.body),
+      };
+    }
+  } catch (error) {
+    console.error("[GUIDE DETAIL] Error loading guide:", error.message);
   }
+
+  if (staticGuides[slug]) return staticGuides[slug];
+  return null;
 }
 
 export async function generateMetadata({ params }) {
