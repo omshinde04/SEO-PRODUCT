@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { connectDB } from "@/lib/db";
 import Category from "@/models/Category";
+import Business from "@/models/Business";
 import StructuredData from "@/components/structured-data";
-import PublicNavbar from "@/components/public-navbar";
 import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
+import CategoryBrowser from "@/components/category-browser";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +21,30 @@ export const metadata = {
 
 export default async function CategoriesPage() {
   let categories = [];
+  const countMap = {};
   const settings = await getGlobalSeoSettings();
+
   try {
     await connectDB();
-    categories = await Category.find({ status: "active", "seo.noIndex": { $ne: true } })
-      .select("name slug description icon sortOrder")
-      .sort({ sortOrder: 1, name: 1 })
-      .limit(100)
-      .lean()
-      .exec();
+    const [cats, counts] = await Promise.all([
+      Category.find({ status: "active", "seo.noIndex": { $ne: true } })
+        .select("name slug description icon parent sortOrder")
+        .sort({ sortOrder: 1, name: 1 })
+        .limit(100)
+        .lean()
+        .exec(),
+      Business.aggregate([
+        { $match: { status: "published", "seo.noIndex": { $ne: true } } },
+        { $group: { _id: "$category", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    categories = JSON.parse(JSON.stringify(cats));
+    counts.forEach((c) => {
+      if (c._id) {
+        countMap[c._id.toString()] = c.count;
+      }
+    });
   } catch (error) {
     console.error("[CATEGORY DIRECTORY]", error.message);
   }
@@ -51,15 +66,10 @@ export default async function CategoriesPage() {
   };
 
   return (
-    <main className="directory-page">
+    <>
       <StructuredData data={structuredData} />
-      <PublicNavbar activePath="/categories" />
-      <section className="detail-state">
-        <span className="eyebrow">DISCOVER BY CATEGORY</span>
-        <h1>Browse local business categories</h1>
-        <p>Explore shops, restaurants, healthcare, professional services, stays and experiences across Ghoti, Igatpuri, Nashik and nearby villages.</p>
-      </section>
-      {categories.length ? <section className="detail-listing-section"><div className="collection-grid">{categories.map((item) => <Link className="collection-card" key={item._id} href={`/categories/${item.slug}`}><span className="collection-symbol collection-symbol-2">{item.icon ? "✦" : "⌕"}</span><span className="collection-card-copy"><strong>{item.name}</strong><small>{item.description || `Explore ${item.name.toLowerCase()} in your area.`}</small></span><span className="collection-arrow">↗</span></Link>)}</div></section> : <section className="detail-state"><h2>Categories are being added</h2><p>Check back soon, or browse the current business directory.</p><Link className="detail-primary" href="/businesses">Browse businesses ↗</Link></section>}
-    </main>
+      <CategoryBrowser categories={categories} countMap={countMap} />
+    </>
   );
 }
+
