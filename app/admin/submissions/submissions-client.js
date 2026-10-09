@@ -237,7 +237,7 @@ export default function SubmissionsClient({ user }) {
                 </article>)}</div>}
                 <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"><p className="text-xs text-slate-500">Page {pagination.page||page} of {Math.max(1,pagination.totalPages||0)} <span className="px-1 text-slate-300">·</span> {filteredTotal} requests</p><div className="flex gap-2"><button className={buttonClass} type="button" disabled={loading||page<=1} onClick={()=>setPage(p=>p-1)}>← Previous</button><button className={buttonClass} type="button" disabled={loading||page>=Math.max(1,pagination.totalPages||0)} onClick={()=>setPage(p=>p+1)}>Next →</button></div></div>
             </section>
-            <p className="mt-5 text-[11px] text-slate-400">Signed in as {user?.email || "Administrator"} · Approving a request records the decision; it does not publish a business automatically.</p>
+            <p className="mt-5 text-[11px] text-slate-400">Signed in as {user?.email || "Administrator"} · Approve a request, then create and publish its listing here. Published listings are available to everyone.</p>
         </div>
     </main>;
 }
