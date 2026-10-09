@@ -1,6 +1,8 @@
 
 "use client";
 
+import Link from "next/link";
+
 import { useCallback, useEffect, useState } from "react";
 import StatCard from "../components/stat-card";
 import StatusBadge from "../components/status-badge";
@@ -432,13 +434,13 @@ export default function DashboardClient({ user }) {
                                 ["Add event", "/admin/events"],
                                 ["Review submissions", "/admin/submissions"],
                             ].map(([label, href]) => (
-                                <a key={href} href={href} className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">{label} <span aria-hidden="true">→</span></a>
+                                <a key={href} href={href} className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">{label} <span aria-hidden="true">→</span></Link>
                             ))}
                         </div>
                         <div className="mt-3 flex flex-wrap gap-3">
-                            <a href="/admin/media" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">Media library</a>
-                            <a href="/admin/seo" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO settings</a>
-                            <a href="/admin/seo-templates" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO templates</a>
+                            <a href="/admin/media" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">Media library</Link>
+                            <a href="/admin/seo" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO settings</Link>
+                            <a href="/admin/seo-templates" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO templates</Link>
                         </div>
                     </section>
 
