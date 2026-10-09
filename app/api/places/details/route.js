@@ -1,4 +1,6 @@
 import { apiError, apiSuccess } from "@/lib/api/response";
+import { connectDB } from "@/lib/db";
+import { enforcePlacesRateLimit } from "@/lib/auth/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +21,10 @@ export async function GET(request) {
   if (!apiKey) return apiError("Google location search is not configured yet. Add GOOGLE_MAPS_API_KEY to the server environment.", 503);
 
   try {
+    await connectDB();
+    const rateLimit = await enforcePlacesRateLimit(request);
+    if (rateLimit.limited) return apiError("Too many location searches. Please wait a few minutes and try again.", 429);
+
     const url = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`);
     if (sessionToken) url.searchParams.set("sessionToken", sessionToken);
     const response = await fetch(url, {
