@@ -56,10 +56,15 @@ test("Cloudinary deletion signs the server-side public ID and timestamp", async 
     assert.equal(body.get("public_id"), "seo-product/places/covers/asset-id");
     assert.equal(body.get("timestamp"), "1800000000");
     assert.equal(body.get("api_key"), config.apiKey);
+    assert.equal(body.get("invalidate"), "true");
     assert.equal(
         body.get("signature"),
         createCloudinarySignature(
-            { public_id: body.get("public_id"), timestamp: Number(body.get("timestamp")) },
+            {
+                public_id: body.get("public_id"),
+                timestamp: Number(body.get("timestamp")),
+                invalidate: true,
+            },
             config.apiSecret
         )
     );
