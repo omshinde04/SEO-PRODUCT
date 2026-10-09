@@ -84,7 +84,10 @@ export default function SubmissionsClient({ user }) {
         finally { setLoading(false); }
     }, [page, status, query]);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() => {
+        const timer = window.setTimeout(() => { void load(); }, 0);
+        return () => window.clearTimeout(timer);
+    }, [load]);
 
     useEffect(() => {
         let active = true;
