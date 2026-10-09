@@ -346,18 +346,46 @@ export async function PATCH(request, { params }) {
 
         const nextStatus = updates.status ?? business.status;
 
-        // Published businesses must always reference active records.
-        if (
-            updates.category !== undefined ||
-            updates.location !== undefined ||
-            nextStatus === "published"
-        ) {
+        // Publishing requires both references to be active. For ordinary
+        // edits, validate only references that actually changed so an existing
+        // draft with an inactive category/location can still be edited.
+        if (nextStatus === "published") {
             const referenceError = await validateReferences(
                 nextCategory,
                 nextLocation
             );
 
             if (referenceError) return referenceError;
+        } else {
+            if (
+                updates.category !== undefined &&
+                updates.category !== String(business.category)
+            ) {
+                const category = await Category.findById(updates.category)
+                    .select("_id status")
+                    .lean()
+                    .exec();
+
+                if (!category) return apiError("Category not found.", 404);
+                if (category.status !== "active") {
+                    return apiError("Select an active category.", 409);
+                }
+            }
+
+            if (
+                updates.location !== undefined &&
+                updates.location !== String(business.location)
+            ) {
+                const location = await Location.findById(updates.location)
+                    .select("_id status")
+                    .lean()
+                    .exec();
+
+                if (!location) return apiError("Location not found.", 404);
+                if (location.status !== "active") {
+                    return apiError("Select an active location.", 409);
+                }
+            }
         }
 
         // Validate coordinates after merging the partial update.
