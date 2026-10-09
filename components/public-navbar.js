@@ -64,7 +64,8 @@ export default function PublicNavbar({ activePath = "" }) {
           {/* Actions: CTA & Hamburger */}
           <div className="navbar-actions">
             <Link href="/add-business" className="navbar-cta-btn">
-              <span>List your business</span>
+              <span className="navbar-cta-full">List your business</span>
+              <span className="navbar-cta-short">List business</span>
               <span className="navbar-arrow" aria-hidden="true">↗</span>
             </Link>
 
@@ -161,6 +162,19 @@ export default function PublicNavbar({ activePath = "" }) {
             </Link>
 
             <Link
+              href="/places"
+              onClick={() => setMenuOpen(false)}
+              className={`mobile-nav-item ${activePath === "/places" ? "active" : ""}`}
+            >
+              <span className="item-icon">🏞️</span>
+              <span className="item-text">
+                <strong>Places & Attractions</strong>
+                <small>Viewpoints, forts, dams & waterfalls</small>
+              </span>
+              <span className="item-arrow">→</span>
+            </Link>
+
+            <Link
               href="/guides"
               onClick={() => setMenuOpen(false)}
               className={`mobile-nav-item ${activePath === "/guides" ? "active" : ""}`}
@@ -169,6 +183,19 @@ export default function PublicNavbar({ activePath = "" }) {
               <span className="item-text">
                 <strong>Local Guides</strong>
                 <small>Practical tips before you visit</small>
+              </span>
+              <span className="item-arrow">→</span>
+            </Link>
+
+            <Link
+              href="/events"
+              onClick={() => setMenuOpen(false)}
+              className={`mobile-nav-item ${activePath === "/events" ? "active" : ""}`}
+            >
+              <span className="item-icon">📅</span>
+              <span className="item-text">
+                <strong>Events & Gatherings</strong>
+                <small>Bazaars, festivals & local happenings</small>
               </span>
               <span className="item-arrow">→</span>
             </Link>

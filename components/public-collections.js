@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import PublicNavbar from "@/components/public-navbar";
 
 export default function PublicCollections({ kind }) {
   const isCategory = kind === "categories";
@@ -29,7 +30,7 @@ export default function PublicCollections({ kind }) {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [kind, isCategory, query]);
   return <main className="directory-page">
-    <header className="directory-header"><Link href="/" className="directory-back">← GaavConnect</Link><Link href="/add-business" className="directory-add">List your business ↗</Link></header>
+    <PublicNavbar activePath={`/${kind}`} />
     <section className="directory-intro"><span className="eyebrow">{isCategory ? "FIND YOUR KIND OF PLACE" : "EXPLORE THE NEIGHBOURHOOD"}</span><h1>{isCategory ? <>A little of <em>everything.</em></> : <>Places make <em>the place.</em></>}</h1><p>{isCategory ? "Browse local categories and discover the people, places and services that make every area special." : "Choose a city or town to discover local businesses, experiences and useful places around you."}</p>
       <label className="collection-search"><span className="sr-only">{isCategory ? "Search categories" : "Search locations"}</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={isCategory ? "Search categories…" : "Search cities and towns…"} /><span aria-hidden="true">⌕</span></label>
     </section>
