@@ -149,6 +149,10 @@ export async function POST(request) {
 
         const data = validation.data;
 
+        // Connect before any category lookup; Mongoose queries must not run
+        // before the database connection is established.
+        await connectDB();
+
         if (data.parent !== null) {
             if (!mongoose.isValidObjectId(data.parent)) {
                 return apiError("Parent category ID is invalid.", 400);
@@ -167,8 +171,6 @@ export async function POST(request) {
                 return apiError("Parent category must be active.", 409);
             }
         }
-
-        await connectDB();
 
         // Check top-level names because the schema's partial unique index
         // only enforces name uniqueness for child categories.
