@@ -1,0 +1,3 @@
+import PublicDetail from "@/components/public-detail";
+export async function generateMetadata({ params }) { const { slug } = await params; return { title: `${slug.replace(/-/g," ")} | nearfolk`, description: "Discover local business details, services and contact information on nearfolk." }; }
+export default async function BusinessPage({ params }) { const { slug } = await params; return <PublicDetail kind="businesses" slug={slug} />; }
