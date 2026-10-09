@@ -77,12 +77,10 @@ export default function AdminSidebar({ open, onClose }) {
                     }`}
             >
                 <div className="flex h-[76px] items-center gap-3 border-b border-slate-100 px-6">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-sm font-black tracking-tight text-white shadow-sm shadow-blue-600/20">
-                        SP
-                    </div>
+                    <img src="/icon.svg" alt="" width="42" height="42" className="h-10 w-10 shrink-0 rounded-xl" />
                     <div>
                         <p className="text-[15px] font-bold tracking-tight text-slate-900">
-                            SEO-PRODUCT
+                            GaavConnect
                         </p>
                         <p className="mt-0.5 text-[11px] font-medium text-slate-400">
                             Admin workspace

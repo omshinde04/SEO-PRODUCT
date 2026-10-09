@@ -1,6 +1,6 @@
 # SEO-PRODUCT
 
-SEO-PRODUCT is a location-focused discovery platform foundation for businesses, places, guides, and local events, starting around Ghoti, Igatpuri, and Nashik. The current development priority is a secure, usable admin panel; the public discovery website is a later phase.
+SEO-PRODUCT is a location-focused discovery platform foundation for businesses, places, guides, and local events, starting around Ghoti, Igatpuri, and Nashik. The platform includes a public discovery website and a secure admin panel for managing business listings, locations, categories, content, media, and SEO.
 
 ## Technology
 
@@ -76,6 +76,12 @@ SEO-PRODUCT is a location-focused discovery platform foundation for businesses, 
 
 The admin API requires an authenticated admin session. Admin pages and APIs must not be treated as public endpoints.
 
+## OpenStreetMap location search
+
+The public homepage, business directory, and admin business address form use a server-side proxy to the OpenStreetMap-based Photon geocoder. No Google Maps key or paid API key is required. The proxy limits query length and result count, rate-limits requests using MongoDB-backed counters, caches repeated provider queries for five minutes, uses a short timeout, biases ranking toward Nashik while allowing searches across India, and includes visible OpenStreetMap contributor attribution. Manual address editing remains available when search is unavailable.
+
+**Public-service limitation:** the community Photon demo at `photon.komoot.io` is intended for reasonable usage and does not guarantee availability; heavy usage can be throttled or blocked. Before GaavConnect scales to substantial production traffic, deploy a managed provider or self-host Photon with appropriate monitoring and capacity. Do not use the public Nominatim endpoint for autocomplete because its policy explicitly prohibits autocomplete usage. See the [Photon project guidance](https://github.com/komoot/photon) and [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
 ## Security notes
 
 - Admin sessions use an HTTP-only, SameSite=Lax cookie and short-lived JWTs.
@@ -97,4 +103,4 @@ GitHub Actions runs automated tests, ESLint, a production build, and authenticat
 
 ## Current scope
 
-The priority is to finish and verify the admin panel and its data/security workflows. The public discovery pages and complete live SEO metadata pipeline are not considered finished just because admin APIs and SEO settings exist. Validate the public routes, sitemap, and metadata integration in a separate phase before launching the platform.
+The public website includes business discovery, category and location directories, business profiles with gallery images, editorial guides, trust/support pages, cookie preferences, OpenStreetMap-powered location autocomplete, and database-backed SEO metadata. Validate the public routes, sitemap, and metadata integration in a separate phase before launching the platform.

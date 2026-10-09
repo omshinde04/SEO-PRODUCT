@@ -355,11 +355,18 @@ export default function DashboardClient({ user }) {
 
                                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                     {statCards.map((card) => (
-                                        <StatCard
-                                            key={card.title}
-                                            {...card}
-                                            loading={loading}
-                                        />
+                                        card.title === "Pending submissions" ? (
+                                            <Link key={card.title} href="/admin/submissions" className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                                                <StatCard {...card} loading={loading} />
+                                                <span className="sr-only">Open business submissions inbox</span>
+                                            </Link>
+                                        ) : (
+                                            <StatCard
+                                                key={card.title}
+                                                {...card}
+                                                loading={loading}
+                                            />
+                                        )
                                     ))}
                                 </div>
                             </section>

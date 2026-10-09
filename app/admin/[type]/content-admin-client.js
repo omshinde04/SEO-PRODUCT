@@ -13,11 +13,11 @@ const labels = {
 };
 
 const blankSeo = {
-    siteName: "SEO-PRODUCT",
-    siteUrl: "",
-    defaultTitle: "Discover Local Businesses & Places",
-    titleTemplate: "%s | SEO-PRODUCT",
-    defaultDescription: "Discover local businesses, places, guides and events.",
+    siteName: "GaavConnect",
+    siteUrl: "https://gaavconnect.in",
+    defaultTitle: "GaavConnect — Discover Local Businesses in Nashik District",
+    titleTemplate: "%s | GaavConnect",
+    defaultDescription: "Discover local businesses, shops, restaurants and services across Ghoti, Igatpuri and Nashik, Maharashtra.",
     defaultImage: "",
     robotsIndex: true,
     sitemapEnabled: true,
@@ -27,7 +27,7 @@ const blankSeo = {
 
 const blankTemplate = {
     entityType: "business",
-    titleTemplate: "%s | SEO-PRODUCT",
+    titleTemplate: "%s | GaavConnect",
     descriptionTemplate: "%s",
     canonicalTemplate: "",
     noIndexByDefault: false,

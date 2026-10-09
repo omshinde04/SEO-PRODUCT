@@ -1,74 +1,89 @@
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-white px-6 py-12 text-slate-900">
-      <div className="mx-auto flex min-h-[80vh] max-w-4xl flex-col items-center justify-center text-center">
-        {/* Status Badge */}
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600">
-          <span className="h-2 w-2 rounded-full bg-blue-600" />
-          Foundation Test
-        </div>
+import PublicHome from "@/components/public-home";
+import StructuredData from "@/components/structured-data";
+import { connectDB } from "@/lib/db";
+import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
+import Business from "@/models/Business";
+import Category from "@/models/Category";
+import Location from "@/models/Location";
 
-        {/* Heading */}
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-          Tailwind CSS is{" "}
-          <span className="text-blue-600">Working</span>
-        </h1>
+export const dynamic = "force-dynamic";
 
-        {/* Description */}
-        <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-          Clean Next.js 16 + Tailwind CSS 4 foundation for our local discovery
-          platform.
-        </p>
+export async function generateMetadata() {
+  const settings = await getGlobalSeoSettings();
+  const title = settings.defaultTitle || "GaavConnect — Discover Local Businesses in Nashik District";
+  const description = settings.defaultDescription || "Discover local shops, restaurants, trusted services, stays and places across Ghoti, Igatpuri and Nashik, Maharashtra with GaavConnect.";
+  const image = settings.defaultImage || undefined;
 
-        {/* Test Cards */}
-        <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Framework</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">
-              Next.js 16
-            </h2>
-            <p className="mt-1 text-sm text-green-600">✓ Working</p>
-          </div>
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: settings.siteName || "GaavConnect",
+      locale: "en_IN",
+      url: settings.siteUrl,
+      ...(image ? { images: [{ url: image, alt: settings.siteName || "GaavConnect" }] } : {}),
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      ...(image ? { images: [image] } : {}),
+    },
+  };
+}
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Styling</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">
-              Tailwind CSS 4
-            </h2>
-            <p className="mt-1 text-sm text-green-600">✓ Working</p>
-          </div>
+export default async function Home() {
+  let initialData = { businesses: [], categories: [], locations: [], pagination: null };
+  try {
+    await connectDB();
+    const [businesses, categories, locations] = await Promise.all([
+      Business.find({ status: "published", "seo.noIndex": { $ne: true } })
+        .select("name slug tagline description businessType category location address coverImage images logo isFeatured verificationStatus")
+        .populate({ path: "category", select: "name slug description icon", match: { status: "active", "seo.noIndex": { $ne: true } } })
+        .populate({ path: "location", select: "name slug type address coverImage", match: { status: "active", "seo.noIndex": { $ne: true } } })
+        .sort({ isFeatured: -1, publishedAt: -1, name: 1 })
+        .limit(8)
+        .lean()
+        .exec(),
+      Category.find({ status: "active", "seo.noIndex": { $ne: true } })
+        .select("name slug description icon sortOrder")
+        .sort({ sortOrder: 1, name: 1 })
+        .limit(12)
+        .lean()
+        .exec(),
+      Location.find({ status: "active", "seo.noIndex": { $ne: true } })
+        .select("name slug description type sortOrder")
+        .sort({ sortOrder: 1, name: 1 })
+        .limit(30)
+        .lean()
+        .exec(),
+    ]);
+    const visibleBusinesses = businesses.filter((item) => item.category && item.location);
+    initialData = {
+      businesses: visibleBusinesses,
+      categories,
+      locations,
+      pagination: { page: 1, limit: 8, total: visibleBusinesses.length, totalPages: visibleBusinesses.length ? 1 : 0 },
+    };
+    initialData = JSON.parse(JSON.stringify(initialData));
+  } catch (error) {
+    console.error("[PUBLIC HOME] Initial listings unavailable:", error.message);
+  }
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Build</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">
-              Production
-            </h2>
-            <p className="mt-1 text-green-600">✓ Ready</p>
-          </div>
-        </div>
+  const settings = await getGlobalSeoSettings();
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: settings.defaultTitle,
+    description: settings.defaultDescription,
+    url: `${settings.siteUrl}/`,
+    about: { "@type": "Place", name: "Nashik district, Maharashtra, India" },
+    isPartOf: { "@type": "WebSite", name: settings.siteName, url: settings.siteUrl },
+  };
 
-        {/* Button Tests */}
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            className="min-h-11 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
-          >
-            Primary Button
-          </button>
-
-          <button
-            type="button"
-            className="min-h-11 rounded-lg border border-slate-200 bg-white px-6 py-3 font-semibold text-slate-900 transition hover:bg-slate-50"
-          >
-            Secondary Button
-          </button>
-        </div>
-
-        {/* Test Footer */}
-        <p className="mt-10 text-sm text-slate-500">
-          Next step: build the actual platform foundation.
-        </p>
-      </div>
-    </main>
-  );
+  return <><StructuredData data={structuredData} /><PublicHome initialData={initialData} /></>;
 }

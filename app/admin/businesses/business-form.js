@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import OpenStreetMapPlaceAutocomplete from "@/components/openstreetmap-place-autocomplete";
 
 const TYPES = [
     ["business", "General business"],
@@ -662,7 +663,40 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                             </Field>
                         </Section>
 
-                        <Section title="Address & coordinates" description="Use complete location information where available.">
+                        <Section title="Address & coordinates" description="Search OpenStreetMap to fill available address fields and coordinates.">
+                            <div className="sm:col-span-2">
+                                <OpenStreetMapPlaceAutocomplete
+                                    inputId="admin-business-address-search"
+                                    label="FIND ADDRESS WITH OPENSTREETMAP"
+                                    value={form.address.formatted || ""}
+                                    placeholder="Search a business address, town or village"
+                                    onChange={(value) => {
+                                        setNested("address", "formatted", value);
+                                        setValue("coordinates", { latitude: "", longitude: "" });
+                                    }}
+                                    onSelect={(place) => {
+                                        if (!place) {
+                                            setValue("coordinates", { latitude: "", longitude: "" });
+                                            return;
+                                        }
+                                        setValue("address", {
+                                            ...form.address,
+                                            formatted: place.formattedAddress || place.description || "",
+                                            area: place.address?.area || form.address.area || "",
+                                            city: place.address?.city || form.address.city || "",
+                                            district: place.address?.district || form.address.district || "",
+                                            state: place.address?.state || form.address.state || "",
+                                            country: place.address?.country || form.address.country || "India",
+                                            postalCode: place.address?.postalCode || form.address.postalCode || "",
+                                        });
+                                        setValue("coordinates", {
+                                            latitude: place.latitude ?? "",
+                                            longitude: place.longitude ?? "",
+                                        });
+                                    }}
+                                />
+                                <p className="mt-2 text-xs font-normal leading-5 text-slate-500">Choose an OpenStreetMap result to save its available coordinates. You can still edit the address fields below.</p>
+                            </div>
                             {[
                                 ["line1", "Address line 1"],
                                 ["line2", "Address line 2"],

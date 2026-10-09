@@ -1,0 +1,11 @@
+import PublicInfoPage from "@/components/public-info-page";
+import { getStaticPageMetadata } from "@/lib/seo/static-pages";
+export const generateMetadata = () => getStaticPageMetadata("/privacy");
+export default function PrivacyPage(){return <PublicInfoPage eyebrow="PRIVACY NOTICE" title="Your information deserves" highlight="care." description="This notice explains the main kinds of information that may be involved when you browse GaavConnect or choose to submit business details. It should be reviewed against the platform’s final operating and legal requirements before launch." breadcrumbs={[{label:"Privacy"}]} sections={[
+{title:"Information you choose to submit",body:"If you submit a business listing or contact the team through a platform form, you may provide business details and contact information requested by that form. Please provide only information you are authorised to share."},
+{title:"Public business information",body:"Information included in a published business profile may be visible to anyone who visits the website and may be indexed by search engines. Do not submit confidential information or private personal details for publication."},
+{title:"How information may be used",body:"Submitted information is used to operate the directory, review submissions, maintain listing accuracy and respond to relevant requests. The specific data retention periods and operational processes should be confirmed in the final production privacy documentation."},
+{title:"Browser preferences",body:"The cookie-preferences interface currently stores your choice in browser local storage so the site can remember it. The preference interface does not itself load analytics or marketing trackers. See the cookie policy for more details.",link:{href:"/cookies",label:"Read the cookie policy"}},
+{title:"Your choices and questions",body:"You can choose what information to submit and can update cookie preferences using the link in the website footer. For a listing or privacy-related question, use the available contact guidance.",link:{href:"/contact",label:"Contact guidance"}},
+{title:"Before production launch",body:"The site owner should confirm the legal entity, contact details, data retention, hosting and processor arrangements, applicable user rights and any statutory disclosures before treating this notice as final legal advice."}
+]} />}
