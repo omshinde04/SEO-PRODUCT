@@ -1,0 +1,9 @@
+import PublicInfoPage from "@/components/public-info-page";
+import { getStaticPageMetadata } from "@/lib/seo/static-pages";
+export const generateMetadata = () => getStaticPageMetadata("/about");
+export default function AboutPage(){return <PublicInfoPage eyebrow="OUR STORY" title="Good places deserve to be" highlight="found." description="GaavConnect is being built to make discovering local businesses, useful services and places feel simpler — while giving the people behind them a better way to be seen." breadcrumbs={[{label:"About"}]} sections={[
+{title:"Local discovery, with people at the centre",body:"The best places are not always the loudest online. A family-run shop, a neighbourhood service or a small local experience can be valuable to its community even when it has a modest digital presence. GaavConnect aims to make those discoveries easier."},
+{title:"Built to connect discovery with opportunity",body:"People need clear information when deciding where to go or whom to contact. Businesses need a practical way to share what they offer. Our directory brings business profiles, categories and locations together in one searchable experience.",points:["Explore public business listings and their available details.","Browse categories and locations to narrow down what you need.","Help a local business get listed by submitting its information."]},
+{title:"Useful information over empty pages",body:"We want directory pages to help people make informed next steps. We do not promise that every listing is independently verified, and users should confirm important details directly with a business before relying on them."},
+{title:"Growing thoughtfully",body:"GaavConnect is starting with local discovery across Nashik district and is designed to support businesses across locations and categories as the directory grows."}
+]} />}
