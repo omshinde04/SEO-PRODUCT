@@ -344,7 +344,12 @@ export default function BusinessForm({ business, onClose, onSaved }) {
         setError("");
         setFieldErrors({});
 
+        const publishIntent = event.nativeEvent?.submitter?.value === "publish";
         const payload = toPayload(form);
+
+        // The dedicated Publish action must publish even when the status
+        // dropdown is still set to Draft.
+        if (publishIntent) payload.status = "published";
 
         if (!payload.name || payload.name.length < 2) {
             setFieldErrors({ name: "Enter a business name of at least 2 characters." });
@@ -413,9 +418,13 @@ export default function BusinessForm({ business, onClose, onSaved }) {
             }
 
             onSaved(
-                isEditing
-                    ? "Business changes saved successfully."
-                    : "Business created successfully."
+                payload.status === "published"
+                    ? "Business published successfully."
+                    : payload.status === "archived"
+                        ? "Business archived successfully."
+                        : isEditing
+                            ? "Business draft saved successfully."
+                            : "Business draft created successfully."
             );
         } catch (err) {
             setError(err.message || "Could not save business.");
@@ -658,12 +667,31 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                         <p className="text-[11px] text-slate-400">
                             {isEditing ? "Changes update the existing record." : "The business will be saved using the selected status."}
                         </p>
-                        <div className="flex justify-end gap-3">
+                        <div className="flex flex-wrap justify-end gap-3">
                             <button type="button" onClick={onClose} disabled={saving || Boolean(uploading)} className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
                                 Cancel
                             </button>
-                            <button type="submit" disabled={saving || Boolean(uploading) || loadingOptions} className="min-h-10 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
-                                {saving ? "Saving…" : isEditing ? "Save changes" : "Create business"}
+                            {form.status !== "published" && form.status !== "archived" && (
+                                <button
+                                    type="submit"
+                                    name="intent"
+                                    value="publish"
+                                    disabled={saving || Boolean(uploading) || loadingOptions}
+                                    className="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {saving ? "Saving…" : "Publish business"}
+                                </button>
+                            )}
+                            <button type="submit" name="intent" value="save" disabled={saving || Boolean(uploading) || loadingOptions} className="min-h-10 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                                {saving
+                                    ? "Saving…"
+                                    : form.status === "published"
+                                        ? "Save & publish"
+                                        : form.status === "archived"
+                                            ? "Save as archived"
+                                            : isEditing
+                                                ? "Save draft"
+                                                : "Create draft"}
                             </button>
                         </div>
                     </footer>
