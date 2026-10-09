@@ -15,7 +15,9 @@ export default function OpenStreetMapPlaceAutocomplete({
   const root = useRef(null);
   const selectionMade = useRef(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Keep the input synchronized when a parent resets or loads a saved address. */
   useEffect(() => { setInput(value || ""); }, [value]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     function outside(event) {
@@ -25,6 +27,7 @@ export default function OpenStreetMapPlaceAutocomplete({
     return () => document.removeEventListener("pointerdown", outside);
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Clear stale results when the user shortens or clears the query. */
   useEffect(() => {
     const query = input.trim();
     if (selectionMade.current) {
@@ -60,6 +63,7 @@ export default function OpenStreetMapPlaceAutocomplete({
 
     return () => { clearTimeout(timer); controller.abort(); };
   }, [input]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function choose(suggestion) {
     const place = suggestion.place;
