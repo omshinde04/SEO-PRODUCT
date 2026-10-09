@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import GooglePlaceAutocomplete from "@/components/google-place-autocomplete";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 const TYPES = [
   { value: "", label: "All categories" },
@@ -98,8 +98,6 @@ export default function PublicHome({ initialData = null }) {
       setLoading(false);
     }
   }, [submitted]);
-
-  useEffect(() => { if (!initialData) loadData(); }, [initialData, loadData]);
 
   const featuredCategories = useMemo(() => categories.slice(0, 6), [categories]);
 
