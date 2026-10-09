@@ -81,6 +81,9 @@ export async function GET(request) {
         const businessType = (searchParams.get("businessType") || "").trim();
         const categoryValue = (searchParams.get("category") || "").trim();
         const locationValue = (searchParams.get("location") || "").trim();
+        const locationText = (searchParams.get("locationText") || "").trim();
+
+        if (locationText.length > 120) return apiError("Location search must be 120 characters or fewer.", 400);
 
         if (q.length > 100) {
             return apiError("Search query must be 100 characters or fewer.", 400);
@@ -131,17 +134,45 @@ export async function GET(request) {
             : { $in: activeLocationIds };
         if (businessType) filter.businessType = businessType;
 
+        const searchGroups = [];
         if (q) {
             const expression = new RegExp(escapeRegex(q), "i");
-            filter.$or = [
+            searchGroups.push({ $or: [
                 { name: expression },
                 { tagline: expression },
                 { description: expression },
                 { "address.city": expression },
                 { "address.area": expression },
                 { services: expression },
-            ];
+            ] });
         }
+
+        if (locationText) {
+            const expression = new RegExp(escapeRegex(locationText), "i");
+            const matchingLocations = await Location.find({
+                status: "active",
+                $or: [
+                    { name: expression },
+                    { "address.city": expression },
+                    { "address.area": expression },
+                    { "address.district": expression },
+                    { "address.state": expression },
+                ],
+            }).distinct("_id").exec();
+
+            searchGroups.push({ $or: [
+                { location: { $in: matchingLocations } },
+                { "address.formatted": expression },
+                { "address.city": expression },
+                { "address.area": expression },
+                { "address.district": expression },
+                { "address.state": expression },
+                { serviceAreas: expression },
+            ] });
+        }
+
+        if (searchGroups.length === 1) Object.assign(filter, searchGroups[0]);
+        if (searchGroups.length > 1) filter.$and = [...(filter.$and || []), ...searchGroups];
 
         const skip = (page - 1) * limit;
 
