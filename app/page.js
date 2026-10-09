@@ -1,5 +1,6 @@
 import PublicHome from "@/components/public-home";
 import StructuredData from "@/components/structured-data";
+import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
 import { connectDB } from "@/lib/db";
 import Business from "@/models/Business";
 import Category from "@/models/Category";
@@ -56,7 +57,7 @@ export default async function Home() {
     console.error("[PUBLIC HOME] Initial listings unavailable:", error.message);
   }
 
-  const structuredData = {
+  const settings = await getGlobalSeoSettings();\n  const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: "GaavConnect — Discover Local Businesses in Nashik District",
