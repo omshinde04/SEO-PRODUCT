@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import GooglePlaceAutocomplete from "@/components/google-place-autocomplete";
+import OpenStreetMapPlaceAutocomplete from "@/components/openstreetmap-place-autocomplete";
 
 const TYPES = [
     ["business", "General business"],
@@ -663,11 +663,11 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                             </Field>
                         </Section>
 
-                        <Section title="Address & coordinates" description="Use Google Places to find an address and fill its available address fields and coordinates.">
+                        <Section title="Address & coordinates" description="Search OpenStreetMap to fill available address fields and coordinates.">
                             <div className="sm:col-span-2">
-                                <GooglePlaceAutocomplete
+                                <OpenStreetMapPlaceAutocomplete
                                     inputId="admin-business-address-search"
-                                    label="FIND ADDRESS WITH GOOGLE MAPS"
+                                    label="FIND ADDRESS WITH OPENSTREETMAP"
                                     value={form.address.formatted || ""}
                                     placeholder="Search a business address, town or village"
                                     onChange={(value) => {
@@ -695,7 +695,7 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                                         });
                                     }}
                                 />
-                                <p className="mt-2 text-xs font-normal leading-5 text-slate-500">Choose a Google suggestion to save its coordinates. You can still edit the address fields below.</p>
+                                <p className="mt-2 text-xs font-normal leading-5 text-slate-500">Choose an OpenStreetMap result to save its available coordinates. You can still edit the address fields below.</p>
                             </div>
                             {[
                                 ["line1", "Address line 1"],
