@@ -45,7 +45,7 @@ const contentSchema = z
         status: z.enum(["draft", "published", "archived"]).optional().default("draft"),
         location: z.string().regex(/^[a-f\d]{24}$/i).nullable().optional().default(null),
         coverImage: z.object({
-            url: httpUrl(),
+            url: httpUrl().optional().default(""),
             publicId: z.string().trim().max(300).optional().default(""),
             alt: z.string().trim().max(200).optional().default(""),
         }).strict().optional().default({}),
