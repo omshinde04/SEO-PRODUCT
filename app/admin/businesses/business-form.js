@@ -671,7 +671,7 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                             <button type="button" onClick={onClose} disabled={saving || Boolean(uploading)} className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
                                 Cancel
                             </button>
-                            {form.status !== "published" && form.status !== "archived" && (
+                            {form.status !== "published" && (
                                 <button
                                     type="submit"
                                     name="intent"
