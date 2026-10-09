@@ -312,6 +312,7 @@ export default function LocationsClient() {
             return;
         }
 
+        setBusy(true);
         setBusyId(item._id);
         setError("");
         setNotice("");
@@ -334,6 +335,7 @@ export default function LocationsClient() {
             setError(statusError.message || "Could not change location status.");
         } finally {
             setBusyId("");
+            setBusy(false);
         }
     }
 
