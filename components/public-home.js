@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import GooglePlaceAutocomplete from "@/components/google-place-autocomplete";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const TYPES = [
@@ -62,6 +63,7 @@ function SectionHeading({ eyebrow, title, description, href, linkLabel = "Explor
 export default function PublicHome({ initialData = null }) {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState(null);
   const [businessType, setBusinessType] = useState("");
   const [submitted, setSubmitted] = useState({ q: "", location: "", businessType: "" });
   const [businesses, setBusinesses] = useState(initialData?.businesses || []);
@@ -77,7 +79,7 @@ export default function PublicHome({ initialData = null }) {
     try {
       const params = new URLSearchParams({ limit: "8" });
       if (filters.q) params.set("q", filters.q);
-      if (filters.location) params.set("location", filters.location);
+      if (filters.location) params.set("locationText", filters.location);
       if (filters.businessType) params.set("businessType", filters.businessType);
       const [businessResponse, categoryResponse, locationResponse] = await Promise.all([
         fetch(`/api/businesses?${params.toString()}`, { cache: "no-store" }),
@@ -106,7 +108,7 @@ export default function PublicHome({ initialData = null }) {
 
   function handleSearch(event) {
     event.preventDefault();
-    const next = { q: query.trim(), location, businessType };
+    const next = { q: query.trim(), location: selectedPlace?.searchText || location.trim(), businessType };
     setSubmitted(next);
     loadData(next);
   }
@@ -114,6 +116,7 @@ export default function PublicHome({ initialData = null }) {
   function clearFilters() {
     setQuery("");
     setLocation("");
+    setSelectedPlace(null);
     setBusinessType("");
     const empty = { q: "", location: "", businessType: "" };
     setSubmitted(empty);
@@ -146,10 +149,10 @@ export default function PublicHome({ initialData = null }) {
         <div className="search-panel-wrap"><form className="search-panel" onSubmit={handleSearch}>
           <label className="search-field search-keyword"><span className="search-icon"><Icon name="search" size={20} /></span><span className="field-content"><span className="field-label">WHAT ARE YOU LOOKING FOR?</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Coffee, stays, a great mechanic..." aria-label="Search businesses and services" /></span></label>
           <span className="search-divider" />
-          <label className="search-field search-location"><span className="search-icon"><Icon name="pin" size={20} /></span><span className="field-content"><span className="field-label">AROUND WHERE?</span><select value={location} onChange={(event) => setLocation(event.target.value)} aria-label="Filter by location"><option value="">Anywhere nearby</option>{locations.map((item) => <option key={item._id} value={item.slug}>{item.name}{item.address?.district ? `, ${item.address.district}` : ""}</option>)}</select></span></label>
+          <div className="search-field search-location"><span className="search-icon"><Icon name="pin" size={20} /></span><div className="field-content"><GooglePlaceAutocomplete inputId="home-location-search" label="AROUND WHERE?" value={location} onChange={(value) => { setLocation(value); setSelectedPlace(null); }} onSelect={(place) => setSelectedPlace(place ? { ...place, searchText: place.address?.city || place.address?.area || place.address?.district || place.name || place.description } : null)} placeholder="Search a town or village" /></div></div>
           <label className="search-field search-category"><span className="search-icon"><Icon name="compass" size={20} /></span><span className="field-content"><span className="field-label">THE KIND OF THING</span><select value={businessType} onChange={(event) => setBusinessType(event.target.value)} aria-label="Filter by business category">{TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></span></label>
           <button className="search-submit" type="submit"><Icon name="search" size={18} /><span>Find it</span></button>
-        </form><div className="popular-searches"><span>TRY SOMETHING LIKE</span><button type="button" onClick={() => { setQuery("coffee"); setSubmitted({ q: "coffee", location, businessType }); loadData({ q: "coffee", location, businessType }); }}>Coffee spots</button><i>·</i><button type="button" onClick={() => { setBusinessType("hotel"); setSubmitted({ q: query, location, businessType: "hotel" }); loadData({ q: query, location, businessType: "hotel" }); }}>Weekend stays</button><i>·</i><button type="button" onClick={() => { setBusinessType("healthcare"); setSubmitted({ q: query, location, businessType: "healthcare" }); loadData({ q: query, location, businessType: "healthcare" }); }}>Health & wellness</button></div></div>
+        </form><div className="popular-searches"><span>TRY SOMETHING LIKE</span><button type="button" onClick={() => { setQuery("coffee"); setSubmitted({ q: "coffee", location: selectedPlace?.searchText || location.trim(), businessType }); loadData({ q: "coffee", location: selectedPlace?.searchText || location.trim(), businessType }); }}>Coffee spots</button><i>·</i><button type="button" onClick={() => { setBusinessType("hotel"); setSubmitted({ q: query, location: selectedPlace?.searchText || location.trim(), businessType: "hotel" }); loadData({ q: query, location: selectedPlace?.searchText || location.trim(), businessType: "hotel" }); }}>Weekend stays</button><i>·</i><button type="button" onClick={() => { setBusinessType("healthcare"); setSubmitted({ q: query, location: selectedPlace?.searchText || location.trim(), businessType: "healthcare" }); loadData({ q: query, location: selectedPlace?.searchText || location.trim(), businessType: "healthcare" }); }}>Health & wellness</button></div></div>
       </section>
 
       <section className="trust-strip" aria-label="Our values"><div><span className="trust-icon"><Icon name="shield" size={19} /></span><span><strong>Thoughtfully discovered</strong><small>Useful places, not endless noise</small></span></div><div><span className="trust-icon"><Icon name="heart" size={19} /></span><span><strong>Rooted in community</strong><small>Local stories deserve the spotlight</small></span></div><div><span className="trust-icon"><Icon name="spark" size={19} /></span><span><strong>Made for real life</strong><small>Find your next everyday favourite</small></span></div><div className="trust-note">Small places. <em>Big part of life.</em></div></section>
