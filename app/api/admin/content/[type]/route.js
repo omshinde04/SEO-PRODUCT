@@ -228,7 +228,7 @@ export async function GET(request, context) {
                 if (!item.siteName || ["seo-product", "nearfolk"].includes(String(item.siteName).toLowerCase())) item.siteName = "GaavConnect";
                 if (!item.siteUrl) item.siteUrl = "https://gaavconnect.in";
                 if (!item.titleTemplate || /seo-product|nearfolk/i.test(item.titleTemplate)) item.titleTemplate = "%s | GaavConnect";
-                if (!item.defaultTitle || /seo-product|nearfolk|discover local businesses\s*&\s*places/i.test(item.defaultTitle)) item.defaultTitle = "Discover Local Businesses in Nashik District";
+                if (!item.defaultTitle || /seo-product|nearfolk|discover local businesses\s*&\s*places/i.test(item.defaultTitle)) item.defaultTitle = "GaavConnect — Discover Local Businesses in Nashik District";
                 if (!item.defaultDescription || /seo-product|nearfolk/i.test(item.defaultDescription)) item.defaultDescription = "Discover local businesses, shops, restaurants and services across Ghoti, Igatpuri and Nashik, Maharashtra.";
                 if (!item.organizationName || ["seo-product", "nearfolk"].includes(String(item.organizationName).toLowerCase())) item.organizationName = "GaavConnect";
             }
