@@ -3444,32 +3444,82 @@ button { cursor: pointer; }
 .detail-listing-section .directory-cards,
 .saas-places-section .directory-cards,
 .saas-business-grid {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 24px !important;
-  width: 100% !important;
-  margin-top: 20px !important;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+@media (max-width: 1024px) {
+  .detail-listing-section .directory-cards,
+  .saas-places-section .directory-cards,
+  .saas-business-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .saas-places-section,
+  .detail-listing-section {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-bottom: 40px !important;
+  }
+  .detail-listing-section .directory-cards,
+  .saas-places-section .directory-cards,
+  .saas-business-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+    margin-top: 16px !important;
+  }
+  .saas-places-section .saas-business-card {
+    width: 100% !important;
+  }
+  .saas-places-section .saas-card-media {
+    height: 185px !important;
+  }
+  .saas-subcategory-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+  .saas-subcategory-tile {
+    padding: 14px 16px !important;
+    border-radius: 14px !important;
+    gap: 12px !important;
+  }
+  .section-heading {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .heading-count-badge {
+    align-self: flex-start !important;
+    font-size: 11px !important;
+    padding: 4px 10px !important;
+  }
 }
 
 .saas-places-section .saas-business-card {
-  width: 100% !important;
-  min-width: 0 !important;
+  width: 100%;
+  min-width: 0;
 }
 
 .saas-places-section .saas-card-media {
-  height: 200px !important;
-  width: 100% !important;
-  position: relative !important;
-  overflow: hidden !important;
-  background: #edf3e9 !important;
+  height: 200px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #edf3e9;
 }
 
 .saas-places-section .saas-card-img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  object-position: center !important;
-  display: block !important;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 /* Daylight, pleasant fallback art for cards without cover image */
@@ -3926,7 +3976,7 @@ button { cursor: pointer; }
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 640px) {
   .saas-breadcrumb {
     padding: 16px 16px 0;
   }
@@ -3967,21 +4017,87 @@ button { cursor: pointer; }
   .categories-hero-section,
   .categories-grid-section,
   .categories-cta-section {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
   .saas-subcategory-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
   }
-  .saas-category-grid {
-    grid-template-columns: 1fr;
+  .saas-subcategory-tile {
+    padding: 14px 16px !important;
+    border-radius: 14px !important;
+    gap: 12px !important;
+  }
+  .categories-hero-section {
+    padding: 24px 16px 32px !important;
   }
   .categories-hero-heading {
-    font-size: clamp(26px, 7vw, 34px);
+    font-size: clamp(26px, 7vw, 34px) !important;
+  }
+  .categories-hero-subtext {
+    font-size: 13px !important;
+    margin-bottom: 20px !important;
+  }
+  .categories-stats-chips {
+    gap: 8px !important;
+    margin-bottom: 20px !important;
+  }
+  .cat-stat-badge {
+    padding: 4px 11px !important;
+    font-size: 11px !important;
   }
   .cat-search-input {
     height: 48px;
     font-size: 16px !important;
+  }
+  .categories-grid-section {
+    padding-bottom: 40px !important;
+  }
+  .saas-category-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+  .saas-cat-card {
+    padding: 18px 16px !important;
+    border-radius: 16px !important;
+  }
+  .cat-card-header {
+    margin-bottom: 14px !important;
+  }
+  .cat-card-icon-bubble {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+  }
+  .cat-card-title {
+    font-size: 17px !important;
+  }
+  .cat-card-description {
+    font-size: 12px !important;
+    margin-bottom: 14px !important;
+  }
+  .cat-card-footer {
+    padding-top: 12px !important;
+  }
+  .categories-cta-section {
+    padding-bottom: 48px !important;
+  }
+  .categories-cta-inner {
+    padding: 24px 18px !important;
+    border-radius: 20px !important;
+    gap: 16px !important;
+  }
+  .categories-cta-content h2 {
+    font-size: clamp(22px, 6vw, 28px) !important;
+  }
+  .categories-cta-content p {
+    font-size: 13px !important;
+  }
+  .cta-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 44px !important;
   }
   .saas-empty-category-card {
     padding: 36px 18px;
