@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
 import Category from "@/models/Category";
+import Business from "@/models/Business";
 import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
 
@@ -188,6 +189,33 @@ export async function PATCH(request, { params }) {
             return apiError("Category not found.", 404);
         }
 
+        // PATCH can deactivate a category too, so enforce the same data
+        // integrity rules as DELETE before changing active -> inactive.
+        if (updates.status === "inactive" && category.status === "active") {
+            const activeChildren = await Category.exists({
+                parent: category._id,
+                status: "active",
+            });
+
+            if (activeChildren) {
+                return apiError(
+                    "Deactivate or reassign active child categories first.",
+                    409
+                );
+            }
+
+            const linkedBusiness = await Business.exists({
+                category: category._id,
+            });
+
+            if (linkedBusiness) {
+                return apiError(
+                    "This category is referenced by businesses. Reassign those businesses before deactivating it.",
+                    409
+                );
+            }
+        }
+
         if (updates.parent !== undefined) {
             const parentError = await validateParent(updates.parent, id);
             if (parentError) return parentError;
@@ -281,6 +309,18 @@ export async function DELETE(_request, { params }) {
                 message: "Category is already inactive.",
                 item: category.toObject(),
             });
+        }
+
+        // Do not deactivate a category while any business still references it.
+        // The public API only exposes businesses with active categories, so
+        // allowing this would make existing business pages disappear.
+        const linkedBusiness = await Business.exists({ category: category._id });
+
+        if (linkedBusiness) {
+            return apiError(
+                "This category is referenced by businesses. Reassign those businesses before deactivating it.",
+                409
+            );
         }
 
         category.status = "inactive";
