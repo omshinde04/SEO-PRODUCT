@@ -183,6 +183,7 @@ const businessPatchSchema = z.object({
         noIndex: z.boolean(),
     }).partial().strict(),
 
+    isFeatured: z.boolean(),
     status: z.enum(businessStatuses),
     verificationStatus: z.enum(verificationStatuses),
 }).partial().strict();
