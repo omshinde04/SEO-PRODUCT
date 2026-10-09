@@ -24,19 +24,13 @@ export default function BusinessDirectory() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ items: [], pagination: null });
   const [categories, setCategories] = useState([]);
-  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      fetch("/api/categories?limit=100").then((r) => r.json()),
-      fetch("/api/locations?limit=100").then((r) => r.json()),
-    ]).then(([cats, locs]) => {
-      if (!active) return;
-      if (cats.success) setCategories(cats.items || []);
-      if (locs.success) setLocations(locs.items || []);
+    fetch("/api/categories?limit=100").then((r) => r.json()).then((cats) => {
+      if (active && cats.success) setCategories(cats.items || []);
     }).catch(() => {});
     return () => { active = false; };
   }, []);
