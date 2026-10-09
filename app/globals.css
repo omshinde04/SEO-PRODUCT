@@ -30,6 +30,10 @@ button { cursor: pointer; }
 .announcement-right span { color: var(--lime); margin-left: 7px; }
 .site-header { height: 82px; max-width: 1240px; margin: auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.brand-logo { display: block; width: clamp(190px, 20vw, 270px); height: auto; object-fit: contain; }
+.footer-brand-logo-link { align-self: flex-start; }
+.footer-brand-logo { width: 245px; max-width: 100%; }
+@media (max-width: 520px) { .brand-logo { width: 190px; } .footer-brand-logo { width: 220px; } }
 .brand-mark { width: 41px; height: 41px; display: grid; place-items: center; border-radius: 14px 14px 14px 5px; color: #fff; background: var(--green); }
 .brand-name { font-size: 23px; font-weight: 800; letter-spacing: -.075em; line-height: .94; }
 .brand-name > span { color: #77904b; }
