@@ -59,16 +59,16 @@ function SectionHeading({ eyebrow, title, description, href, linkLabel = "Explor
   return <div className="section-heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2>{description && <p>{description}</p>}</div>{href && <Link href={href} className="text-link">{linkLabel}<Icon name="arrow" size={17} /></Link>}</div>;
 }
 
-export default function PublicHome() {
+export default function PublicHome({ initialData = null }) {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [submitted, setSubmitted] = useState({ q: "", location: "", businessType: "" });
-  const [businesses, setBusinesses] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [locations, setLocations] = useState([]);
-  const [pagination, setPagination] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [businesses, setBusinesses] = useState(initialData?.businesses || []);
+  const [categories, setCategories] = useState(initialData?.categories || []);
+  const [locations, setLocations] = useState(initialData?.locations || []);
+  const [pagination, setPagination] = useState(initialData?.pagination || null);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState("");
 
   const loadData = useCallback(async (filters = submitted) => {
@@ -124,7 +124,7 @@ export default function PublicHome() {
     <main className="site-shell">
       <div className="announcement-bar"><span className="announcement-dot" /> Your neighbourhood, better discovered <span className="announcement-separator">·</span> Starting in Nashik district <span className="announcement-right">Made for the places we call home <span aria-hidden="true">✳</span></span></div>
       <header className="site-header">
-        <Link href="/" className="brand" aria-label="Localora home"><span className="brand-mark"><Icon name="compass" size={25} /></span><span className="brand-name">near<span>folk</span><small>GOOD THINGS, CLOSE BY</small></span></Link>
+        <Link href="/" className="brand" aria-label="GaavConnect home"><span className="brand-mark"><Icon name="compass" size={25} /></span><span className="brand-name">Gaav<span>Connect</span><small>LOCAL FINDS, CONNECTED</small></span></Link>
         <nav className="desktop-nav" aria-label="Main navigation"><a href="#discover">Discover</a><a href="#categories">Categories</a><a href="#places">Places</a><a href="#about">Our story</a></nav>
         <div className="header-actions"><Link className="header-add" href="/add-business">List your business <Icon name="arrow" size={16} /></Link><button className="mobile-menu" type="button" onClick={() => document.getElementById("discover")?.scrollIntoView({ behavior: "smooth" })} aria-label="Jump to search"><Icon name="search" /></button></div>
       </header>
