@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 function imageOf(item) { return item?.coverImage?.url || item?.images?.[0]?.url || item?.logo?.url || ""; }
 function Card({ item }) {
   const image=imageOf(item);
-  const galleryImages = Array.isArray(item?.images) ? item.images.filter((entry) => entry?.url && /^https?:\\/\\//i.test(entry.url)) : [];
+  const galleryImages = Array.isArray(item?.images) ? item.images.filter((entry) => entry?.url && (entry.url.startsWith("https://") || entry.url.startsWith("http://"))) : [];
   return <article className="business-card"><Link href={`/businesses/${item.slug}`} className="business-card-image">{image ? <img src={image} alt={item.coverImage?.alt || item.name} loading="lazy"/> : <div className="business-art art-green"><span>{(item.name||"L").slice(0,1)}</span><small>LOCAL FIND</small></div>}</Link><div className="business-card-body"><div className="business-card-meta"><span>{item.category?.name||"Local business"}</span></div><h3><Link href={`/businesses/${item.slug}`}>{item.name}</Link></h3><p className="business-tagline">{item.tagline||item.description||"Discover a local favourite."}</p><div className="business-card-footer"><span className="location-line">⌖ {[item.address?.area,item.address?.city,item.location?.name].filter(Boolean).join(", ")||"Local area"}</span><Link className="card-arrow" href={`/businesses/${item.slug}`}>↗</Link></div></div></article>;
 }
 export default function PublicDetail({ kind, slug }) {
