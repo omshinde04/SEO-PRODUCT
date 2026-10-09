@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SEO-PRODUCT
 
-## Getting Started
+SEO-PRODUCT is a location-focused discovery platform foundation for businesses, places, guides, and local events, starting around Ghoti, Igatpuri, and Nashik. The current development priority is a secure, usable admin panel; the public discovery website is a later phase.
 
-First, run the development server:
+## Technology
+
+- Next.js App Router and React (JavaScript, not TypeScript)
+- Tailwind CSS
+- MongoDB and Mongoose
+- Admin sessions signed with JWT and stored in an HTTP-only cookie
+- Zod request validation
+- Cloudinary signed image uploads
+
+## Requirements
+
+- Node.js 22 or newer
+- npm
+- A reachable MongoDB database
+- A Cloudinary account for image upload and media deletion workflows
+
+## Local setup
+
+1. Install dependencies:
+
+   ```bash
+   npm ci
+   ```
+
+2. Create your local environment file:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Set real values in `.env.local`:
+
+   | Variable | Purpose |
+   | --- | --- |
+   | `MONGODB_URI` | MongoDB connection string |
+   | `JWT_SECRET` | Private signing secret, at least 32 characters |
+   | `AUTH_RATE_LIMIT_SECRET` | Separate private HMAC secret for rate-limit identifiers; falls back to `JWT_SECRET` if omitted |
+   | `NEXT_PUBLIC_SITE_URL` | Canonical public origin used by robots and sitemap |
+   | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+   | `CLOUDINARY_API_KEY` | Cloudinary API key |
+   | `CLOUDINARY_API_SECRET` | Server-only Cloudinary API secret |
+   | `CLOUDINARY_UPLOAD_PRESET` | Signed upload preset configured in Cloudinary |
+
+   Generate strong secrets instead of using the example placeholders. Never expose `JWT_SECRET`, `AUTH_RATE_LIMIT_SECRET`, or `CLOUDINARY_API_SECRET` to client-side code, and never commit `.env.local`.
+
+4. Create the first administrator interactively:
+
+   ```bash
+   node scripts/create-admin.mjs
+   ```
+
+   The script asks for the admin name, email, and password. Password input is hidden, the password is hashed before storage, and the script refuses to create a second admin.
+
+5. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000/admin/login](http://localhost:3000/admin/login).
+
+## Admin modules
+
+- **Overview:** business, category, location, content, and submission counts.
+- **Businesses:** business profile CRUD, publishing state, verification, contact details, location/category assignment, and images.
+- **Categories and locations:** hierarchical classification and location management with integrity checks.
+- **Places, guides, and events:** content editing, location assignment, cover images, publication status, and per-item SEO fields. Events include date/time, venue, and registration URL fields.
+- **Business submissions:** review status and internal notes.
+- **Media library:** signed Cloudinary uploads, metadata editing, and reference-aware remote deletion.
+- **Global SEO settings and templates:** editable defaults and entity-specific template records.
+
+The admin API requires an authenticated admin session. Admin pages and APIs must not be treated as public endpoints.
+
+## Security notes
+
+- Admin sessions use an HTTP-only, SameSite=Lax cookie and short-lived JWTs.
+- Login attempts use persistent MongoDB-backed rate limits. Public business submissions require a same-origin `Origin` header and are rate-limited by hashed IP/email identifiers.
+- Rate limiting uses `x-vercel-forwarded-for`, `x-real-ip`, or `x-forwarded-for` for client address detection. Deploy behind a trusted proxy that overwrites these headers; do not accept untrusted client-supplied forwarding headers directly.
+- Image uploads use server-generated IDs, fixed upload purposes/folders, and signed Cloudinary requests. Configure the Cloudinary preset to enforce image-only uploads, the allowed formats (JPG, PNG, WebP, AVIF), and a 5 MB maximum.
+- Media deletion checks whether an asset is referenced by business, location, or content records. If Cloudinary does not confirm deletion, the database record is retained.
+- Use HTTPS in production, keep environment secrets server-side, and configure MongoDB network access and credentials for the deployed environment.
+
+## Verification commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm test
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+GitHub Actions runs the automated tests, ESLint, and production build on pull requests to `main`. CI uses placeholder environment values only; it does not verify connectivity to a real MongoDB or Cloudinary account.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Current scope
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The priority is to finish and verify the admin panel and its data/security workflows. The public discovery pages and complete live SEO metadata pipeline are not considered finished just because admin APIs and SEO settings exist. Validate the public routes, sitemap, and metadata integration in a separate phase before launching the platform.
