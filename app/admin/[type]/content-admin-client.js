@@ -92,6 +92,7 @@ export default function ContentAdminPage({ type }) {
     const [editingId, setEditingId] = useState("");
     const [contentSeo, setContentSeo] = useState(blankContentSeo);
     const [submissionNotes, setSubmissionNotes] = useState({});
+    const [mediaMetadata, setMediaMetadata] = useState({});
 
     const [seo, setSeo] = useState(blankSeo);
     const [template, setTemplate] = useState(blankTemplate);
@@ -259,6 +260,13 @@ export default function ContentAdminPage({ type }) {
                 method: "PATCH",
                 body: JSON.stringify({ id, data }),
             });
+            if (type === "media") {
+                setMediaMetadata((current) => {
+                    const next = { ...current };
+                    delete next[id];
+                    return next;
+                });
+            }
             setNotice("Changes saved.");
             await load();
         } catch (updateError) {
@@ -723,8 +731,47 @@ export default function ContentAdminPage({ type }) {
                                             <a href={item.url} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-blue-700 underline">
                                                 {item.url}
                                             </a>
-                                            {item.alt && <p className="text-xs text-slate-500">Alt: {item.alt}</p>}
-                                            {item.caption && <p className="text-xs text-slate-500">{item.caption}</p>}
+                                            <div className="mt-3 grid w-full max-w-xl gap-2 sm:grid-cols-2">
+                                                <input
+                                                    aria-label={"Alt text for " + item.publicId}
+                                                    maxLength={200}
+                                                    value={mediaMetadata[item._id]?.alt ?? item.alt ?? ""}
+                                                    onChange={(event) => setMediaMetadata((current) => ({
+                                                        ...current,
+                                                        [item._id]: {
+                                                            alt: event.target.value,
+                                                            caption: current[item._id]?.caption ?? item.caption ?? "",
+                                                        },
+                                                    }))}
+                                                    placeholder="Alt text"
+                                                    className="rounded-lg border border-slate-200 p-2 text-xs"
+                                                />
+                                                <input
+                                                    aria-label={"Caption for " + item.publicId}
+                                                    maxLength={500}
+                                                    value={mediaMetadata[item._id]?.caption ?? item.caption ?? ""}
+                                                    onChange={(event) => setMediaMetadata((current) => ({
+                                                        ...current,
+                                                        [item._id]: {
+                                                            alt: current[item._id]?.alt ?? item.alt ?? "",
+                                                            caption: event.target.value,
+                                                        },
+                                                    }))}
+                                                    placeholder="Caption"
+                                                    className="rounded-lg border border-slate-200 p-2 text-xs"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    disabled={busy}
+                                                    onClick={() => update(item._id, {
+                                                        alt: mediaMetadata[item._id]?.alt ?? item.alt ?? "",
+                                                        caption: mediaMetadata[item._id]?.caption ?? item.caption ?? "",
+                                                    })}
+                                                    className={buttonClass}
+                                                >
+                                                    Save metadata
+                                                </button>
+                                            </div>
                                         </>
                                     )}
 
