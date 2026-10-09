@@ -1,29 +1,23 @@
 
 import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/auth/session";
-import DashboardClient from "./dashboard-client";
+import BusinessesClient from "./businesses-client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export const metadata = {
-    title: "Admin Dashboard | SEO-PRODUCT",
-    description: "Manage the SEO-PRODUCT local discovery platform.",
-    robots: {
-        index: false,
-        follow: false,
-    },
+    title: "Business Management | SEO-PRODUCT",
+    robots: { index: false, follow: false },
 };
 
-export default async function AdminDashboardPage() {
+export default async function BusinessesPage() {
     const user = await getAuthenticatedUser();
 
-    if (!user) {
-        redirect("/admin/login");
-    }
+    if (!user) redirect("/admin/login");
 
     return (
-        <DashboardClient
+        <BusinessesClient
             user={{
                 name: user.name || "Administrator",
                 email: user.email || "",
