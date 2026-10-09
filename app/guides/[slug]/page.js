@@ -70,11 +70,14 @@ async function getGuide(slug) {
   if (staticGuides[slug]) return staticGuides[slug];
   try {
     await connectDB();
-    const item = await ContentItem.findOne({ slug, kind: "guide", status: "published" }).lean();
+    const item = await ContentItem.findOne({ slug, kind: "guide", status: "published" })
+      .populate("location", "name slug")
+      .lean();
     if (!item) return null;
     return {
       title: item.title,
       description: item.summary || item.title,
+      location: item.location?.name || null,
       sections: parseBodyToSections(item.body),
     };
   } catch {
@@ -102,7 +105,7 @@ export default async function GuideDetailPage({ params }) {
   if (!guide) notFound();
   return (
     <PublicInfoPage
-      eyebrow="GAAVCONNECT FIELD NOTES"
+      eyebrow={guide.location ? `FIELD GUIDE · ${guide.location.toUpperCase()}` : "GAAVCONNECT FIELD NOTES"}
       title={guide.title}
       description={guide.description}
       breadcrumbs={[{ label: "Local guides", href: "/guides" }, { label: guide.title }]}

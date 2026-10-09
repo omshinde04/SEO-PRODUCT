@@ -7,7 +7,9 @@ const NAV_LINKS = [
   { href: "/businesses", label: "Explore" },
   { href: "/categories", label: "Categories" },
   { href: "/locations", label: "Locations" },
+  { href: "/places", label: "Places" },
   { href: "/guides", label: "Guides" },
+  { href: "/events", label: "Events" },
   { href: "/about", label: "About" },
 ];
 

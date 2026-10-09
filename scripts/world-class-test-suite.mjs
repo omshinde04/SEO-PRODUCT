@@ -251,11 +251,19 @@ const locPageRes = await fetch(`${BASE_URL}/locations/${locSlug}`, { cache: "no-
 report("Public Pages", `/locations/${locSlug} renders HTTP 200`, locPageRes.status === 200);
 
 // Test 4.4: Public Guides List & Detail
-const guideSlug = "guide-nashik-food-trail-1791573455195";
+const guideSlug = "highway-food-trail-ghoti-igatpuri";
 const guidePageRes = await fetch(`${BASE_URL}/guides/${guideSlug}`, { cache: "no-store" });
 report("Public Pages", `/guides/${guideSlug} renders HTTP 200`, guidePageRes.status === 200);
 
-// Test 4.5: Public Add Business Form
+// Test 4.5: Public Places List & Detail
+const placeRes = await fetch(`${BASE_URL}/places/bhavali-dam-waterfalls`, { cache: "no-store" });
+report("Public Pages", "/places/bhavali-dam-waterfalls renders HTTP 200", placeRes.status === 200);
+
+// Test 4.6: Public Events List & Detail
+const eventRes = await fetch(`${BASE_URL}/events/ghoti-weekly-farmer-bazaar`, { cache: "no-store" });
+report("Public Pages", "/events/ghoti-weekly-farmer-bazaar renders HTTP 200", eventRes.status === 200);
+
+// Test 4.7: Public Add Business Form
 const addBizRes = await fetch(`${BASE_URL}/add-business`, { cache: "no-store" });
 report("Public Pages", `/add-business renders HTTP 200`, addBizRes.status === 200);
 
