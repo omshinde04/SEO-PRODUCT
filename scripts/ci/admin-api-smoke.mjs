@@ -367,7 +367,7 @@ const event = await request("/api/admin/content/events", {
         },
     },
 });
-expectStatus(event, 201, "Create valid published event");
+expectStatus(event, 201, "Create valid event draft");
 const eventId = event.data.item?._id;
 assert.ok(eventId, "Event should have an ID");
 
