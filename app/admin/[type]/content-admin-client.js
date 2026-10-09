@@ -15,7 +15,7 @@ const labels = {
 const blankSeo = {
     siteName: "GaavConnect",
     siteUrl: "https://gaavconnect.in",
-    defaultTitle: "Discover Local Businesses in Nashik District",
+    defaultTitle: "GaavConnect — Discover Local Businesses in Nashik District",
     titleTemplate: "%s | GaavConnect",
     defaultDescription: "Discover local businesses, shops, restaurants and services across Ghoti, Igatpuri and Nashik, Maharashtra.",
     defaultImage: "",
