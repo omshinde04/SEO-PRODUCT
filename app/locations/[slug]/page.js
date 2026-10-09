@@ -1,3 +1,12 @@
 import PublicDetail from "@/components/public-detail";
-export async function generateMetadata({ params }) { const { slug } = await params; return { title: `${slug.replace(/-/g," ")} | nearfolk places`, description: "Explore local businesses and useful places in this area." }; }
-export default async function LocationPage({ params }) { const { slug } = await params; return <PublicDetail kind="locations" slug={slug} />; }
+import { buildEntityMetadata } from "@/lib/seo/public-metadata";
+
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  return buildEntityMetadata({ type: "location", slug, path: "locations" });
+}
+
+export default async function LocationPage({ params }) {
+  const { slug } = await params;
+  return <PublicDetail kind="locations" slug={slug} />;
+}
