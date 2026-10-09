@@ -42,7 +42,7 @@ export default function SubmissionsClient({ user }) {
     const [summary, setSummary] = useState({ pending: 0, reviewing: 0, approved: 0, rejected: 0, total: 0 });
     const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0, totalPages: 0 });
     const [page, setPage] = useState(1);
-    const [status, setStatus] = useState("pending");
+    const [status, setStatus] = useState("");
     const [queryInput, setQueryInput] = useState("");
     const [query, setQuery] = useState("");
     const [loading, setLoading] = useState(true);
