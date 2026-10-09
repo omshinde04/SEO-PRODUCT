@@ -13,6 +13,17 @@ export const dynamic = "force-dynamic";
 
 const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i);
 
+const locationTypes = [
+    "country",
+    "state",
+    "district",
+    "city",
+    "town",
+    "village",
+    "locality",
+    "region",
+];
+
 const allowedParentTypes = {
     country: [],
     state: ["country"],
@@ -27,6 +38,7 @@ const allowedParentTypes = {
 const patchLocationSchema = z
     .object({
         name: z.string().trim().min(2).max(120),
+
         slug: z
             .string()
             .trim()
@@ -34,17 +46,11 @@ const patchLocationSchema = z
             .min(1)
             .max(140)
             .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-        type: z.enum([
-            "country",
-            "state",
-            "district",
-            "city",
-            "town",
-            "village",
-            "locality",
-            "region",
-        ]),
+
+        type: z.enum(locationTypes),
+
         parent: z.string().nullable(),
+
         address: z
             .object({
                 district: z.string().trim().max(120),
@@ -55,13 +61,15 @@ const patchLocationSchema = z
                     .max(100)
                     .refine(
                         (codes) =>
-                            new Set(codes.map((code) => code.toLowerCase())).size ===
-                            codes.length,
+                            new Set(
+                                codes.map((code) => code.toLowerCase())
+                            ).size === codes.length,
                         "Postal codes must be unique."
                     ),
             })
             .partial()
             .strict(),
+
         coordinates: z
             .object({
                 latitude: z.number().min(-90).max(90).nullable(),
@@ -69,7 +77,9 @@ const patchLocationSchema = z
             })
             .partial()
             .strict(),
+
         description: z.string().trim().max(3000),
+
         coverImage: z
             .object({
                 url: z.string().trim().max(2048),
@@ -78,6 +88,7 @@ const patchLocationSchema = z
             })
             .partial()
             .strict(),
+
         seo: z
             .object({
                 title: z.string().trim().max(70),
@@ -86,7 +97,9 @@ const patchLocationSchema = z
             })
             .partial()
             .strict(),
+
         status: z.enum(["active", "inactive"]),
+
         sortOrder: z.number().int().min(0).max(100000),
     })
     .partial()
@@ -104,39 +117,26 @@ function isDatabaseValidationError(error) {
     );
 }
 
-function validateCoordinatePair(coordinates) {
-    if (!coordinates) return null;
-
-    const hasLatitude = coordinates.latitude !== undefined;
-    const hasLongitude = coordinates.longitude !== undefined;
-
-    if (hasLatitude !== hasLongitude) {
-        return "Latitude and longitude must be provided together.";
-    }
-
-    if (
-        hasLatitude &&
-        ((coordinates.latitude === null) !==
-            (coordinates.longitude === null))
-    ) {
-        return "Latitude and longitude must both be null or both be numbers.";
-    }
-
-    return null;
+function getParentId(parent) {
+    return parent ? String(parent._id ?? parent) : null;
 }
 
+/**
+ * Check coordinates after merging partial updates with stored values.
+ * A location must have both coordinates or neither.
+ */
 function validateCoordinateMerge(current, updates) {
-    const nextLatitude =
+    const latitude =
         updates.latitude !== undefined
             ? updates.latitude
             : current.latitude;
 
-    const nextLongitude =
+    const longitude =
         updates.longitude !== undefined
             ? updates.longitude
             : current.longitude;
 
-    if ((nextLatitude === null) !== (nextLongitude === null)) {
+    if ((latitude === null) !== (longitude === null)) {
         return "Latitude and longitude must both be null or both be numbers.";
     }
 
@@ -144,7 +144,7 @@ function validateCoordinateMerge(current, updates) {
 }
 
 /**
- * Validate the proposed parent type and walk its ancestors to prevent cycles.
+ * Validate the proposed parent and prevent hierarchy cycles.
  */
 async function validateParent(parentId, childType, locationId) {
     if (parentId === null) {
@@ -208,7 +208,9 @@ async function validateParent(parentId, childType, locationId) {
 
         visited.add(currentId);
 
-        if (!current.parent) break;
+        if (!current.parent) {
+            break;
+        }
 
         current = await Location.findById(current.parent)
             .select("_id parent")
@@ -226,9 +228,12 @@ async function validateParent(parentId, childType, locationId) {
     return null;
 }
 
-// GET /api/admin/locations/:id
+/**
+ * GET /api/admin/locations/:id
+ */
 export async function GET(_request, { params }) {
     const auth = await requireAdmin();
+
     if (auth.response) return auth.response;
 
     try {
@@ -255,9 +260,12 @@ export async function GET(_request, { params }) {
     }
 }
 
-// PATCH /api/admin/locations/:id
+/**
+ * PATCH /api/admin/locations/:id
+ */
 export async function PATCH(request, { params }) {
     const auth = await requireAdmin();
+
     if (auth.response) return auth.response;
 
     try {
@@ -303,12 +311,6 @@ export async function PATCH(request, { params }) {
             return apiError("Provide at least one field to update.", 400);
         }
 
-        const coordinateError = validateCoordinatePair(updates.coordinates);
-
-        if (coordinateError) {
-            return apiError(coordinateError, 400);
-        }
-
         await connectDB();
 
         const location = await Location.findById(id).exec();
@@ -318,14 +320,15 @@ export async function PATCH(request, { params }) {
         }
 
         const nextType = updates.type ?? location.type;
+
         const nextParent =
             updates.parent !== undefined
                 ? updates.parent
-                : location.parent
-                    ? String(location.parent)
-                    : null;
+                : getParentId(location.parent);
 
-        // Validate the proposed hierarchy whenever either part changes.
+        /*
+         * Validate the proposed parent/type relationship when either changes.
+         */
         if (
             updates.parent !== undefined ||
             updates.type !== undefined
@@ -339,7 +342,43 @@ export async function PATCH(request, { params }) {
             if (parentError) return parentError;
         }
 
-        // Do not leave active children under an inactive parent.
+        /*
+         * Safeguard 1:
+         * A type change must not invalidate existing direct children.
+         */
+        if (
+            updates.type !== undefined &&
+            updates.type !== location.type
+        ) {
+            const children = await Location.find({
+                parent: location._id,
+            })
+                .select("_id name type")
+                .lean()
+                .exec();
+
+            const invalidChildren = children.filter(
+                (child) =>
+                    !allowedParentTypes[child.type]?.includes(nextType)
+            );
+
+            if (invalidChildren.length > 0) {
+                return apiError(
+                    "Cannot change this location type because one or more child locations would have an invalid parent type.",
+                    409,
+                    invalidChildren.map((child) => ({
+                        id: String(child._id),
+                        name: child.name,
+                        type: child.type,
+                    }))
+                );
+            }
+        }
+
+        /*
+         * Safeguard 2:
+         * Do not deactivate a location while it has active children.
+         */
         if (
             updates.status === "inactive" &&
             location.status === "active"
@@ -357,21 +396,29 @@ export async function PATCH(request, { params }) {
             }
         }
 
-        // Validate coordinates after merging partial updates with stored data.
+        /*
+         * Safeguard 3:
+         * Validate the merged coordinates, not only the submitted fields.
+         * This allows a valid partial update while preventing half a pair.
+         */
         if (updates.coordinates) {
-            const mergedCoordinateError = validateCoordinateMerge(
+            const coordinateError = validateCoordinateMerge(
                 location.coordinates.toObject
                     ? location.coordinates.toObject()
                     : location.coordinates,
                 updates.coordinates
             );
 
-            if (mergedCoordinateError) {
-                return apiError(mergedCoordinateError, 400);
+            if (coordinateError) {
+                return apiError(coordinateError, 400);
             }
         }
 
-        // Check slug collisions within the same parent scope.
+        /*
+         * Safeguard 4:
+         * Check duplicate slugs under the proposed parent.
+         * MongoDB unique indexes remain the final concurrency safeguard.
+         */
         if (
             updates.slug !== undefined ||
             updates.parent !== undefined
@@ -397,7 +444,10 @@ export async function PATCH(request, { params }) {
             }
         }
 
-        // Merge nested objects instead of replacing omitted sibling fields.
+        /*
+         * Merge nested fields individually so omitted sibling fields survive.
+         * Only fields explicitly accepted by the Zod schema can be changed.
+         */
         for (const [key, value] of Object.entries(updates)) {
             if (
                 ["address", "coordinates", "coverImage", "seo"].includes(key)
@@ -440,10 +490,13 @@ export async function PATCH(request, { params }) {
     }
 }
 
-// DELETE /api/admin/locations/:id
-// Soft delete only: retain records and references for data integrity.
+/**
+ * DELETE /api/admin/locations/:id
+ * Soft deletion only; records are retained for data integrity.
+ */
 export async function DELETE(_request, { params }) {
     const auth = await requireAdmin();
+
     if (auth.response) return auth.response;
 
     try {
