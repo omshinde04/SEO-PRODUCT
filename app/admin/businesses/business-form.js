@@ -356,6 +356,11 @@ export default function BusinessForm({ business, onClose, onSaved }) {
             return;
         }
 
+        if (payload.status === "published" && !payload.description.trim()) {
+            setError("Add a business description before publishing this listing.");
+            return;
+        }
+
         if (!payload.category || !payload.location) {
             setError("Choose both a category and a location.");
             return;
@@ -513,7 +518,7 @@ export default function BusinessForm({ business, onClose, onSaved }) {
 
                             <div className="sm:col-span-2">
                                 <Field label="Description *" hint="Required before a business can be published.">
-                                    <textarea required maxLength={10000} rows={5} className={`${inputClass} py-3`} value={form.description} onChange={(event) => setValue("description", event.target.value)} placeholder="Describe the business, services, and what visitors should know." />
+                                    <textarea required={form.status === "published"} maxLength={10000} rows={5} className={`${inputClass} py-3`} value={form.description} onChange={(event) => setValue("description", event.target.value)} placeholder="Describe the business, services, and what visitors should know." />
                                 </Field>
                             </div>
 
