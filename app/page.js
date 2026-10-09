@@ -1,4 +1,5 @@
 import PublicHome from "@/components/public-home";
+import StructuredData from "@/components/structured-data";
 import { connectDB } from "@/lib/db";
 import Business from "@/models/Business";
 import Category from "@/models/Category";
@@ -64,5 +65,5 @@ export default async function Home() {
     about: { "@type": "Place", name: "Nashik district, Maharashtra, India" },
   };
 
-  return <PublicHome initialData={initialData} />;
+  return <><StructuredData data={structuredData} /><PublicHome initialData={initialData} /></>;
 }
