@@ -341,6 +341,7 @@ export default function BusinessesClient() {
                                     <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</th>
                                     <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
                                     <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification</th>
+                                    <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Featured</th>
                                     <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Added</th>
                                     <th scope="col" className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Actions</th>
                                 </tr>
