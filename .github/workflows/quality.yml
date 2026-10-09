@@ -54,3 +54,36 @@ jobs:
           JWT_SECRET: ci-only-secret-do-not-use-in-production-000000000000000000000000
           AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-secret-000000000000000000000000
           NEXT_PUBLIC_SITE_URL: https://example.invalid
+      - name: Seed isolated CI administrator
+        run: node scripts/ci/seed-admin.mjs
+        env:
+          CI: "true"
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017/seo_product_test
+          CI_ADMIN_EMAIL: ci-admin@example.test
+          CI_ADMIN_PASSWORD: CI-Only-Admin-Password-2026!
+      - name: Start production server for API smoke tests
+        run: |
+          ./node_modules/.bin/next start --hostname 127.0.0.1 > /tmp/seo-product-next.log 2>&1 &
+          echo $! > /tmp/seo-product-next.pid
+        env:
+          PORT: 3000
+          MONGODB_URI: mongodb://127.0.0.1:27017/seo_product_test
+          JWT_SECRET: ci-only-secret-do-not-use-in-production-000000000000000000000000
+          AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-secret-000000000000000000000000
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      - name: Smoke test admin API workflows
+        run: node scripts/ci/admin-api-smoke.mjs
+        env:
+          CI: "true"
+          ADMIN_BASE_URL: http://127.0.0.1:3000
+          CI_ADMIN_EMAIL: ci-admin@example.test
+          CI_ADMIN_PASSWORD: CI-Only-Admin-Password-2026!
+      - name: Print production server logs on failure
+        if: failure()
+        run: cat /tmp/seo-product-next.log || true
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/seo-product-next.pid ]; then
+            kill "$(cat /tmp/seo-product-next.pid)" 2>/dev/null || true
+          fi
