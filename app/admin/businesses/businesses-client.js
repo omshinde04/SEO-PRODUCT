@@ -84,6 +84,11 @@ export default function BusinessesClient() {
     const [verificationStatus, setVerificationStatus] = useState("");
     const [businessType, setBusinessType] = useState("");
     const [featured, setFeatured] = useState("");
+    const [category, setCategory] = useState("");
+    const [location, setLocation] = useState("");
+    const [categories, setCategories] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [optionsError, setOptionsError] = useState("");
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -100,6 +105,46 @@ export default function BusinessesClient() {
         return () => clearTimeout(timer);
     }, [query]);
 
+    useEffect(() => {
+        let active = true;
+
+        async function loadFilterOptions() {
+            try {
+                const [categoryResponse, locationResponse] = await Promise.all([
+                    fetch("/api/admin/categories?limit=100&status=active", {
+                        credentials: "same-origin",
+                        cache: "no-store",
+                    }),
+                    fetch("/api/admin/locations?limit=100&status=active", {
+                        credentials: "same-origin",
+                        cache: "no-store",
+                    }),
+                ]);
+                const [categoryData, locationData] = await Promise.all([
+                    categoryResponse.json(),
+                    locationResponse.json(),
+                ]);
+
+                if (!categoryResponse.ok || !categoryData?.success) {
+                    throw new Error(categoryData?.message || "Could not load category filters.");
+                }
+                if (!locationResponse.ok || !locationData?.success) {
+                    throw new Error(locationData?.message || "Could not load location filters.");
+                }
+
+                if (active) {
+                    setCategories(categoryData.items || []);
+                    setLocations(locationData.items || []);
+                }
+            } catch (optionError) {
+                if (active) setOptionsError(optionError.message || "Could not load category and location filters.");
+            }
+        }
+
+        loadFilterOptions();
+        return () => { active = false; };
+    }, []);
+
     const loadBusinesses = useCallback(async ({ signal } = {}) => {
         setLoading(true);
         setError("");
@@ -113,6 +158,8 @@ export default function BusinessesClient() {
         if (verificationStatus) params.set("verificationStatus", verificationStatus);
         if (businessType) params.set("businessType", businessType);
         if (featured) params.set("featured", featured);
+        if (category) params.set("category", category);
+        if (location) params.set("location", location);
 
         try {
             const response = await fetch(`/api/admin/businesses?${params.toString()}`, {
@@ -153,7 +200,7 @@ export default function BusinessesClient() {
         } finally {
             if (!signal?.aborted) setLoading(false);
         }
-    }, [page, search, status, verificationStatus, businessType, featured]);
+    }, [page, search, status, verificationStatus, businessType, featured, category, location]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -240,6 +287,8 @@ export default function BusinessesClient() {
         setVerificationStatus("");
         setBusinessType("");
         setFeatured("");
+        setCategory("");
+        setLocation("");
         setPage(1);
     }
 
@@ -261,6 +310,11 @@ export default function BusinessesClient() {
                 <div role="status" className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     <span>{notice}</span>
                     <button type="button" onClick={() => setNotice("")} aria-label="Dismiss message" className="font-semibold text-emerald-700">×</button>
+                </div>
+            )}
+            {optionsError && (
+                <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                    Category/location filters could not be loaded: {optionsError}
                 </div>
             )}
             {error && (
@@ -287,7 +341,7 @@ export default function BusinessesClient() {
 
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.02]">
                 <div className="border-b border-slate-100 p-4 sm:p-5">
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.6fr)_repeat(4,minmax(135px,1fr))_auto]">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_repeat(6,minmax(130px,1fr))_auto]">
                         <label className="relative block">
                             <span className="sr-only">Search businesses</span>
                             <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
@@ -317,6 +371,20 @@ export default function BusinessesClient() {
                                 {FEATURED_OPTIONS.map(([value, label]) => <option key={value || "all"} value={value}>{label}</option>)}
                             </select>
                         </label>
+                        <label>
+                            <span className="sr-only">Filter by category</span>
+                            <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} className={controlClass}>
+                                <option value="">All categories</option>
+                                {categories.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by location</span>
+                            <select value={location} onChange={(event) => { setLocation(event.target.value); setPage(1); }} className={controlClass}>
+                                <option value="">All locations</option>
+                                {locations.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
+                            </select>
+                        </label>
                         <button type="button" onClick={clearFilters} className={`${buttonClass} border border-slate-200 bg-white text-slate-600 hover:bg-slate-50`}>Clear</button>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -334,9 +402,9 @@ export default function BusinessesClient() {
                 ) : businesses.length === 0 ? (
                     <div className="px-6 py-16 text-center">
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-200" aria-hidden="true">▦</div>
-                        <h2 className="mt-4 text-sm font-semibold text-slate-900">{search || status || verificationStatus || businessType || featured ? "No matching businesses" : "No businesses yet"}</h2>
-                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{search || status || verificationStatus || businessType || featured ? "Try changing your search or filters." : "Add your first business listing to start building the directory."}</p>
-                        {(search || status || verificationStatus || businessType || featured) ? (
+                        <h2 className="mt-4 text-sm font-semibold text-slate-900">{search || status || verificationStatus || businessType || featured || category || location ? "No matching businesses" : "No businesses yet"}</h2>
+                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{search || status || verificationStatus || businessType || featured || category || location ? "Try changing your search or filters." : "Add your first business listing to start building the directory."}</p>
+                        {(search || status || verificationStatus || businessType || featured || category || location) ? (
                             <button type="button" onClick={clearFilters} className={`${buttonClass} mt-4 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}>Clear filters</button>
                         ) : (
                             <button type="button" onClick={openCreateForm} className={`${buttonClass} mt-4 bg-blue-600 text-white hover:bg-blue-700`}>Add business</button>
