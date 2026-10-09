@@ -2,8 +2,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AdminSidebar from "../components/admin-sidebar";
-import AdminHeader from "../components/admin-header";
 import StatCard from "../components/stat-card";
 import StatusBadge from "../components/status-badge";
 import PageHeader from "../components/page-header";
@@ -176,7 +174,6 @@ function RecentBusinesses({ businesses, loading }) {
 }
 
 export default function DashboardClient({ user }) {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [stats, setStats] = useState(initialStats);
     const [businesses, setBusinesses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -299,19 +296,7 @@ export default function DashboardClient({ user }) {
     ];
 
     return (
-        <div className="min-h-screen bg-[#f7f8fc]">
-            <AdminSidebar
-                open={sidebarOpen}
-                onClose={() => setSidebarOpen(false)}
-            />
-
-            <div className="min-h-screen lg:pl-[264px]">
-                <AdminHeader
-                    user={user}
-                    onMenuClick={() => setSidebarOpen(true)}
-                />
-
-                <main className="mx-auto max-w-[1600px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+        <main className="mx-auto w-full max-w-[1600px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
                     <PageHeader
                         eyebrow="PLATFORM OVERVIEW"
                         title="Dashboard"
@@ -432,8 +417,6 @@ export default function DashboardClient({ user }) {
                         <p>SEO-PRODUCT · Admin workspace</p>
                         <p>Signed in as {user?.email || "Administrator"}</p>
                     </footer>
-                </main>
-            </div>
-        </div>
+        </main>
     );
 }
