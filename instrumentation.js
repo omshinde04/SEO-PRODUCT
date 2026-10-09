@@ -1,5 +1,11 @@
 
 export async function register() {
+    // A production build must not require a live database connection.
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+        console.info("[BOOT] Skipping runtime service initialization during production build.");
+        return;
+    }
+
     if (process.env.NEXT_RUNTIME !== "nodejs") {
         return;
     }
