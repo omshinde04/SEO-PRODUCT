@@ -14,9 +14,9 @@ const navigation = [
         active: true,
     },
 
-    { label: "Categories", href: "/admin/categories", icon: "layers", active: false },
-    { label: "Locations", href: "/admin/locations", icon: "map", active: false },
-    { label: "SEO management", href: "/admin/seo", icon: "search", active: false },
+    { label: "Categories", href: "/admin/categories", icon: "layers", active: true },
+    { label: "Locations", href: "/admin/locations", icon: "map", active: true },
+    { label: "SEO management", href: "/admin/seo", icon: "search", active: true },
 ];
 
 const secondaryNavigation = [
