@@ -1,3 +1,3 @@
 import BusinessSubmissionForm from "@/components/business-submission-form";
-export const metadata = { title: "List Your Business | nearfolk", description: "Submit your local business for review and help nearby people discover you." };
+export const metadata = { title: "List Your Business | GaavConnect", description: "Add your local business to GaavConnect and help people discover your services across Ghoti, Igatpuri, Nashik and nearby villages.", alternates: { canonical: "/add-business" }, robots: { index: false, follow: true } };
 export default function AddBusinessPage() { return <BusinessSubmissionForm />; }
