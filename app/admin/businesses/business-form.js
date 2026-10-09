@@ -502,7 +502,11 @@ export default function BusinessForm({ business, onClose, onSaved }) {
                     );
                 }
 
-                throw new Error(data.message || "Could not save business.");
+                throw new Error(
+                    data.details?.[0]?.message ||
+                    data.message ||
+                    "Could not save business."
+                );
             }
 
             onSaved(
