@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 const STORAGE_KEY = "gaavconnect-cookie-preferences-v1";
 const DEFAULTS = { necessary: true, analytics: false, marketing: false };
 
 export default function CookieConsent() {
+  const pathname = usePathname();
   const [preferences, setPreferences] = useState(null);
   const [visible, setVisible] = useState(false);
   const [customizing, setCustomizing] = useState(false);
@@ -42,7 +44,7 @@ export default function CookieConsent() {
     setCustomizing(false);
   }
 
-  if (!visible) return null;
+  if (pathname.startsWith("/admin") || !visible) return null;
 
   return (
     <div className="cookie-layer" role="region" aria-label="Cookie preferences">
