@@ -6,6 +6,12 @@ import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, apiSuccess } from "@/lib/api/response";
 import { ADMIN_RESOURCES } from "@/lib/content/admin-config";
 import Location from "@/models/Location";
+import Business from "@/models/Business";
+import ContentItem from "@/models/ContentItem";
+import {
+    deleteCloudinaryImage,
+    getCloudinaryConfig,
+} from "@/lib/cloudinary/upload-signature";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -398,13 +404,68 @@ export async function DELETE(request, context) {
     }
 
     const id = new URL(request.url).searchParams.get("id");
-    if (!id || !mongoose.isValidObjectId(id)) return apiError("A valid record ID is required.", 400);
+    if (!id || !mongoose.isValidObjectId(id)) {
+        return apiError("A valid record ID is required.", 400);
+    }
 
     try {
         await connectDB();
+
+        if (type === "media") {
+            const media = await resource.model.findById(id).lean().exec();
+            if (!media) return apiError("Media record not found.", 404);
+
+            const [businessReference, locationReference, contentReference] = await Promise.all([
+                Business.exists({
+                    $or: [
+                        { "logo.publicId": media.publicId },
+                        { "coverImage.publicId": media.publicId },
+                        { "images.publicId": media.publicId },
+                    ],
+                }),
+                Location.exists({ "coverImage.publicId": media.publicId }),
+                ContentItem.exists({ "coverImage.publicId": media.publicId }),
+            ]);
+
+            if (businessReference || locationReference || contentReference) {
+                return apiError(
+                    "This image is assigned to content. Remove its references before deleting it.",
+                    409
+                );
+            }
+
+            try {
+                await deleteCloudinaryImage({
+                    publicId: media.publicId,
+                    config: getCloudinaryConfig(),
+                });
+            } catch (error) {
+                console.error("[MEDIA] Cloudinary deletion failed:", error.message);
+                return apiError(
+                    "Cloudinary could not confirm asset deletion. The media record was kept.",
+                    502
+                );
+            }
+
+            const result = await resource.model.deleteOne({
+                _id: id,
+                publicId: media.publicId,
+            }).exec();
+
+            if (!result.deletedCount) {
+                return apiError(
+                    "The Cloudinary asset was deleted, but the media record changed. Refresh the library and retry.",
+                    409
+                );
+            }
+
+            return apiSuccess({ deleted: true, assetDeleted: true });
+        }
+
         const filter = resource.kind ? { _id: id, kind: resource.kind } : { _id: id };
         const result = await resource.model.deleteOne(filter).exec();
         if (!result.deletedCount) return apiError("Record not found.", 404);
+
         return apiSuccess({ deleted: true });
     } catch (error) {
         return fail(error);
