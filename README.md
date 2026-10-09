@@ -92,7 +92,7 @@ npm run lint
 npm run build
 ```
 
-GitHub Actions runs automated tests, ESLint, a production build, and authenticated API smoke tests on pull requests to `main`. Rate-limit integration tests and admin API smoke tests use an ephemeral MongoDB service in CI; this does not verify connectivity to the production database or Cloudinary account.
+GitHub Actions runs automated tests, ESLint, a production build, and authenticated API smoke tests for business CRUD, category/location hierarchy, content publishing, SEO settings, submissions, and sessions on pull requests to `main`. Rate-limit integration tests and admin API smoke tests use an ephemeral MongoDB service in CI; this does not verify connectivity to the production database or Cloudinary account.
 
 ## Current scope
 
