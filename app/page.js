@@ -1,24 +1,40 @@
 import PublicHome from "@/components/public-home";
 import StructuredData from "@/components/structured-data";
-import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
 import { connectDB } from "@/lib/db";
+import { getGlobalSeoSettings } from "@/lib/seo/public-metadata";
 import Business from "@/models/Business";
 import Category from "@/models/Category";
 import Location from "@/models/Location";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "GaavConnect — Discover Local Businesses in Nashik District",
-  description: "Discover local shops, restaurants, trusted services, stays and places across Ghoti, Igatpuri and Nashik, Maharashtra with GaavConnect.",
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: "GaavConnect — Discover Local Businesses in Nashik District",
-    description: "Find local businesses, useful services and places worth discovering across Nashik district.",
-    type: "website",
-    locale: "en_IN",
-  },
-};
+export async function generateMetadata() {
+  const settings = await getGlobalSeoSettings();
+  const title = settings.defaultTitle || "GaavConnect — Discover Local Businesses in Nashik District";
+  const description = settings.defaultDescription || "Discover local shops, restaurants, trusted services, stays and places across Ghoti, Igatpuri and Nashik, Maharashtra with GaavConnect.";
+  const image = settings.defaultImage || undefined;
+
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: settings.siteName || "GaavConnect",
+      locale: "en_IN",
+      url: settings.siteUrl,
+      ...(image ? { images: [{ url: image, alt: settings.siteName || "GaavConnect" }] } : {}),
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      ...(image ? { images: [image] } : {}),
+    },
+  };
+}
 
 export default async function Home() {
   let initialData = { businesses: [], categories: [], locations: [], pagination: null };
@@ -46,24 +62,27 @@ export default async function Home() {
         .lean()
         .exec(),
     ]);
+    const visibleBusinesses = businesses.filter((item) => item.category && item.location);
     initialData = {
-      businesses: businesses.filter((item) => item.category && item.location),
+      businesses: visibleBusinesses,
       categories,
       locations,
-      pagination: { page: 1, limit: 8, total: businesses.length, totalPages: businesses.length ? 1 : 0 },
+      pagination: { page: 1, limit: 8, total: visibleBusinesses.length, totalPages: visibleBusinesses.length ? 1 : 0 },
     };
     initialData = JSON.parse(JSON.stringify(initialData));
   } catch (error) {
     console.error("[PUBLIC HOME] Initial listings unavailable:", error.message);
   }
 
-  const settings = await getGlobalSeoSettings();\n  const structuredData = {
+  const settings = await getGlobalSeoSettings();
+  const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "GaavConnect — Discover Local Businesses in Nashik District",
-    description: "Discover local businesses, shops, restaurants and services across Ghoti, Igatpuri and Nashik, Maharashtra.",
-    url: "https://gaavconnect.in/",
+    name: settings.defaultTitle,
+    description: settings.defaultDescription,
+    url: `${settings.siteUrl}/`,
     about: { "@type": "Place", name: "Nashik district, Maharashtra, India" },
+    isPartOf: { "@type": "WebSite", name: settings.siteName, url: settings.siteUrl },
   };
 
   return <><StructuredData data={structuredData} /><PublicHome initialData={initialData} /></>;
