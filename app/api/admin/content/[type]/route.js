@@ -8,6 +8,7 @@ import { ADMIN_RESOURCES } from "@/lib/content/admin-config";
 import Location from "@/models/Location";
 import Business from "@/models/Business";
 import ContentItem from "@/models/ContentItem";
+import { SEOSettings } from "@/models/SEOConfig";
 import {
     deleteCloudinaryImage,
     getCloudinaryConfig,
@@ -429,15 +430,41 @@ export async function DELETE(request, context) {
                 Business.exists({
                     $or: [
                         { "logo.publicId": media.publicId },
+                        { "logo.url": media.url },
                         { "coverImage.publicId": media.publicId },
+                        { "coverImage.url": media.url },
                         { "images.publicId": media.publicId },
+                        { "images.url": media.url },
                     ],
                 }),
-                Location.exists({ "coverImage.publicId": media.publicId }),
-                ContentItem.exists({ "coverImage.publicId": media.publicId }),
+                Location.exists({
+                    $or: [
+                        { "coverImage.publicId": media.publicId },
+                        { "coverImage.url": media.url },
+                    ],
+                }),
+                ContentItem.exists({
+                    $or: [
+                        { "coverImage.publicId": media.publicId },
+                        { "coverImage.url": media.url },
+                    ],
+                }),
+                SEOSettings.exists({
+                    $or: [
+                        { defaultImage: media.url },
+                        { organizationLogo: media.url },
+                    ],
+                }),
             ]);
 
-            if (businessReference || locationReference || contentReference) {
+            const seoReference = await SEOSettings.exists({
+                $or: [
+                    { defaultImage: media.url },
+                    { organizationLogo: media.url },
+                ],
+            });
+
+            if (businessReference || locationReference || contentReference || seoReference) {
                 return apiError(
                     "This image is assigned to content. Remove its references before deleting it.",
                     409
