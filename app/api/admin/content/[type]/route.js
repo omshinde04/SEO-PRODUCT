@@ -402,9 +402,21 @@ export async function PATCH(request, context) {
         }
 
         const filter = resource.kind ? { _id: body.id, kind: resource.kind } : { _id: body.id };
+        const setUpdates = { ...updates };
+
+        // PATCH nested objects by dotted path so omitted fields are preserved.
+        for (const key of ["coverImage", "event", "seo"]) {
+            if (!setUpdates[key] || typeof setUpdates[key] !== "object") continue;
+            const nested = setUpdates[key];
+            delete setUpdates[key];
+            for (const [nestedKey, nestedValue] of Object.entries(nested)) {
+                setUpdates[`${key}.${nestedKey}`] = nestedValue;
+            }
+        }
+
         const item = await resource.model.findOneAndUpdate(
             filter,
-            { $set: updates },
+            { $set: setUpdates },
             { new: true, runValidators: true }
         ).lean().exec();
 
