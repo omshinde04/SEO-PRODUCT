@@ -28,7 +28,7 @@ const schema = z.object({
     phone: z.string().trim().min(7).max(30).regex(/^[+()\d .-]+$/),
     whatsapp: z.string().trim().max(30).optional().default(""),
     businessType: z.enum([
-        "business", "restaurant", "hotel", "professional_service",
+        "business", "restaurant", "hotel", "service", "professional_service",
         "healthcare", "retail", "tourism", "attraction", "guide",
         "event_venue", "other"
     ]).optional().default("business"),

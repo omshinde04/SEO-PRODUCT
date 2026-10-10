@@ -90,6 +90,7 @@ const businessSchema = new Schema(
                 "business",
                 "restaurant",
                 "hotel",
+                "service",
                 "professional_service",
                 "healthcare",
                 "retail",

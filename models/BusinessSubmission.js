@@ -10,7 +10,7 @@ const schema = new Schema({
     whatsapp: { type: String, trim: true, maxlength: 30, default: "" },
     businessType: {
         type: String,
-        enum: ["business", "restaurant", "hotel", "professional_service", "healthcare", "retail", "tourism", "attraction", "guide", "event_venue", "other"],
+        enum: ["business", "restaurant", "hotel", "service", "professional_service", "healthcare", "retail", "tourism", "attraction", "guide", "event_venue", "other"],
         default: "business",
     },
     tagline: { type: String, trim: true, maxlength: 200, default: "" },

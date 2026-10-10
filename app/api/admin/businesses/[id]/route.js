@@ -26,6 +26,7 @@ const businessTypes = [
     "business",
     "restaurant",
     "hotel",
+    "service",
     "professional_service",
     "healthcare",
     "retail",

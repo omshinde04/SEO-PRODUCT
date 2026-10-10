@@ -51,7 +51,7 @@ export async function GET(_request, { params }) {
             return apiError("Business not found.", 404);
         }
 
-        return apiSuccess({ item });
+        return apiSuccess({ item, business: item });
     } catch (error) {
         console.error("[PUBLIC BUSINESS] Detail failed for slug:", slug, error);
         return apiError("Unable to retrieve business.", 500);

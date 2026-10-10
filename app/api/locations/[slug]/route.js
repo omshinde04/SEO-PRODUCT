@@ -153,7 +153,7 @@ export async function GET(request, { params }) {
             status: "active",
         })
             .select(
-                "name slug type parent address coordinates description coverImage seo sortOrder createdAt updatedAt"
+                "name slug type parent address coordinates description coverImage seo marathiName tagline featuredOnAbout sortOrder createdAt updatedAt"
             )
             .lean()
             .exec();
@@ -263,6 +263,7 @@ export async function GET(request, { params }) {
 
         return apiSuccess({
             item: location,
+            location,
             parent,
             children,
             childrenPagination: {
