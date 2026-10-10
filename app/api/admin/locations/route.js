@@ -73,6 +73,9 @@ const locationInputSchema = z
             .default({}),
 
         description: z.string().trim().max(3000).optional().default(""),
+        marathiName: z.string().trim().max(120).optional().default(""),
+        tagline: z.string().trim().max(160).optional().default(""),
+        featuredOnAbout: z.boolean().optional().default(false),
 
         coverImage: z
             .object({

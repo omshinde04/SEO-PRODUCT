@@ -96,6 +96,26 @@ const locationSchema = new Schema(
             default: "",
         },
 
+        marathiName: {
+            type: String,
+            trim: true,
+            maxlength: 120,
+            default: "",
+        },
+
+        tagline: {
+            type: String,
+            trim: true,
+            maxlength: 160,
+            default: "",
+        },
+
+        featuredOnAbout: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+
         coverImage: {
             url: {
                 type: String,

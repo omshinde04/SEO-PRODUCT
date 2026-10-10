@@ -34,6 +34,9 @@ function blankForm() {
     return {
         name: "",
         slug: "",
+        marathiName: "",
+        tagline: "",
+        featuredOnAbout: false,
         type: "city",
         parent: "",
         address: {
@@ -211,6 +214,9 @@ export default function LocationsClient() {
         setForm({
             name: item.name || "",
             slug: item.slug || "",
+            marathiName: item.marathiName || "",
+            tagline: item.tagline || "",
+            featuredOnAbout: Boolean(item.featuredOnAbout),
             type: item.type || "city",
             parent: item.parent?._id || item.parent || "",
             address: {
@@ -256,6 +262,9 @@ export default function LocationsClient() {
         const payload = {
             name: form.name.trim(),
             slug: form.slug.trim(),
+            marathiName: form.marathiName.trim(),
+            tagline: form.tagline.trim(),
+            featuredOnAbout: Boolean(form.featuredOnAbout),
             type: form.type,
             parent: form.parent || null,
             address: {
@@ -483,6 +492,18 @@ export default function LocationsClient() {
                     </Field>
                     <Field label="Slug">
                         <input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={140} value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: slugify(event.target.value) }))} className={inputClass} placeholder="igatpuri" />
+                    </Field>
+                    <Field label="Marathi / Local script name" hint="Optional, e.g. घोटी or इगतपुरी (featured on About page & cards)">
+                        <input maxLength={120} value={form.marathiName} onChange={(event) => setForm((current) => ({ ...current, marathiName: event.target.value }))} className={inputClass} placeholder="घोटी" />
+                    </Field>
+                    <Field label="Highlight Tag / Catchphrase" hint="Optional, e.g. 🌾 Highway & Mandi Hub or ⛰️ Hill Station">
+                        <input maxLength={160} value={form.tagline} onChange={(event) => setForm((current) => ({ ...current, tagline: event.target.value }))} className={inputClass} placeholder="🌾 Highway & Mandi Hub" />
+                    </Field>
+                    <Field label="About Page Highlight" hint="Toggle whether this location is prominently featured on About page">
+                        <label className="flex items-center gap-2 pt-2.5 cursor-pointer">
+                            <input type="checkbox" checked={form.featuredOnAbout} onChange={(event) => setForm((current) => ({ ...current, featuredOnAbout: event.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                            <span className="text-xs font-semibold text-slate-700">Feature on About page</span>
+                        </label>
                     </Field>
                     <Field label="Location type">
                         <select required value={form.type} onChange={(event) => changeType(event.target.value)} className={inputClass}>

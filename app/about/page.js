@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { connectDB } from "@/lib/db";
+import Location from "@/models/Location";
+import Business from "@/models/Business";
 import PublicNavbar from "@/components/public-navbar";
 import PublicFooter from "@/components/public-footer";
 import StructuredData from "@/components/structured-data";
@@ -59,7 +62,80 @@ function WhatsAppIcon({ className = "w-4 h-4", ...props }) {
   );
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  let locations = [];
+  let totalBusinesses = 0;
+  let totalLocations = 0;
+
+  try {
+    await connectDB();
+    const [fetchedLocations, bizCount, locCount] = await Promise.all([
+      Location.find({ status: "active" })
+        .select("name slug type marathiName tagline description coverImage featuredOnAbout sortOrder")
+        .sort({ featuredOnAbout: -1, sortOrder: 1, name: 1 })
+        .lean()
+        .exec(),
+      Business.countDocuments({ status: "published" }),
+      Location.countDocuments({ status: "active" }),
+    ]);
+    locations = fetchedLocations || [];
+    totalBusinesses = bizCount || 0;
+    totalLocations = locCount || 0;
+  } catch (error) {
+    console.error("[ABOUT] Failed to load dynamic database locations:", error?.message);
+  }
+
+  const fallbackRegions = [
+    {
+      name: "Ghoti",
+      slug: "ghoti",
+      marathiName: "घोटी",
+      tagline: "🌾 Highway & Mandi Hub",
+      description:
+        "NH-160 highway junction, weekly agricultural mandi, heavy vehicle repair, hardware stores, and highway family dhabas.",
+    },
+    {
+      name: "Igatpuri",
+      slug: "igatpuri",
+      marathiName: "इगतपुरी",
+      tagline: "⛰️ Hill Station & Tourism",
+      description:
+        "Western Ghats retreat, monsoon waterfalls, Vipassana meditation center, luxury valley villas, lake camping & resorts.",
+    },
+    {
+      name: "Nashik City",
+      slug: "nashik-city",
+      marathiName: "नाशिक शहर",
+      tagline: "🏙️ District Capital & Metro",
+      description:
+        "District capital, multispecialty hospitals, commercial retail avenues, wineries, fine dining & industrial belts.",
+    },
+    {
+      name: "Trimbakeshwar",
+      slug: "trimbakeshwar",
+      marathiName: "त्र्यंबकेश्वर",
+      tagline: "🛕 Holy Jyotirlinga",
+      description:
+        "Sacred Jyotirlinga temple, Brahmagiri foothills, pilgrim dharmashalas, religious bookshops & traditional dining.",
+    },
+    {
+      name: "Sinnar",
+      slug: "sinnar",
+      marathiName: "सिन्नर",
+      tagline: "🏛️ MIDC & Heritage",
+      description:
+        "11th-century Gondeshwar Temple, bustling MIDC industrial manufacturing belt, auto spares & local retail bazaars.",
+    },
+  ];
+
+  const featuredLocations = locations.filter((loc) => loc.featuredOnAbout);
+  const displayLocations =
+    featuredLocations.length > 0
+      ? featuredLocations
+      : locations.length > 0
+      ? locations.slice(0, 5)
+      : fallbackRegions;
+
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -160,7 +236,7 @@ export default function AboutPage() {
 
                 <Link href="/businesses" className="about-btn-tertiary">
                   <Store className="w-4 h-4 text-emerald-700" />
-                  <span>Explore 100+ Businesses</span>
+                  <span>Explore {totalBusinesses > 0 ? `${totalBusinesses}+` : "Local"} Businesses</span>
                 </Link>
               </div>
             </div>
@@ -422,80 +498,29 @@ export default function AboutPage() {
             </div>
 
             <div className="about-regions-grid">
-              <div className="about-region-card">
-                <div className="about-region-top">
-                  <span className="about-region-name">Ghoti</span>
-                  <span className="about-region-marathi">घोटी</span>
+              {displayLocations.map((loc) => (
+                <div key={loc.slug || loc.name} className="about-region-card">
+                  <div className="about-region-top">
+                    <span className="about-region-name">{loc.name}</span>
+                    {loc.marathiName ? (
+                      <span className="about-region-marathi">{loc.marathiName}</span>
+                    ) : null}
+                  </div>
+                  {loc.tagline ? (
+                    <span className="about-region-tag">{loc.tagline}</span>
+                  ) : (
+                    <span className="about-region-tag">📍 {loc.type || "Regional Hub"}</span>
+                  )}
+                  <p className="about-region-desc">
+                    {loc.description ||
+                      `Discover authentic local businesses, stores, and service providers across ${loc.name}.`}
+                  </p>
+                  <Link href={`/locations/${loc.slug}`} className="about-region-link">
+                    <span>Explore {loc.name} Listings</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-                <span className="about-region-tag">🌾 Highway & Mandi Hub</span>
-                <p className="about-region-desc">
-                  NH-160 highway junction, weekly agricultural mandi, heavy vehicle repair, hardware stores, and highway family dhabas.
-                </p>
-                <Link href="/locations/ghoti" className="about-region-link">
-                  <span>Explore Ghoti Listings</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              <div className="about-region-card">
-                <div className="about-region-top">
-                  <span className="about-region-name">Igatpuri</span>
-                  <span className="about-region-marathi">इगतपुरी</span>
-                </div>
-                <span className="about-region-tag">⛰️ Hill Station & Tourism</span>
-                <p className="about-region-desc">
-                  Western Ghats retreat, monsoon waterfalls, Vipassana meditation center, luxury valley villas, lake camping & resorts.
-                </p>
-                <Link href="/locations/igatpuri" className="about-region-link">
-                  <span>Explore Igatpuri Listings</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              <div className="about-region-card">
-                <div className="about-region-top">
-                  <span className="about-region-name">Nashik City</span>
-                  <span className="about-region-marathi">नाशिक शहर</span>
-                </div>
-                <span className="about-region-tag">🏙️ District Capital & Metro</span>
-                <p className="about-region-desc">
-                  District capital, multispecialty hospitals, commercial retail avenues, wineries, fine dining & industrial belts.
-                </p>
-                <Link href="/locations/nashik-city" className="about-region-link">
-                  <span>Explore Nashik City</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              <div className="about-region-card">
-                <div className="about-region-top">
-                  <span className="about-region-name">Trimbakeshwar</span>
-                  <span className="about-region-marathi">त्र्यंबकेश्वर</span>
-                </div>
-                <span className="about-region-tag">🛕 Holy Jyotirlinga</span>
-                <p className="about-region-desc">
-                  Sacred Jyotirlinga temple, Brahmagiri foothills, pilgrim dharmashalas, religious bookshops & traditional dining.
-                </p>
-                <Link href="/locations/trimbakeshwar" className="about-region-link">
-                  <span>Explore Trimbakeshwar</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              <div className="about-region-card">
-                <div className="about-region-top">
-                  <span className="about-region-name">Sinnar</span>
-                  <span className="about-region-marathi">सिन्नर</span>
-                </div>
-                <span className="about-region-tag">🏛️ MIDC & Heritage</span>
-                <p className="about-region-desc">
-                  11th-century Gondeshwar Temple, bustling MIDC industrial manufacturing belt, auto spares & local retail bazaars.
-                </p>
-                <Link href="/locations/sinnar" className="about-region-link">
-                  <span>Explore Sinnar Listings</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+              ))}
 
               <div className="about-region-card">
                 <div className="about-region-top">
@@ -507,7 +532,7 @@ export default function AboutPage() {
                   Bhavali Dam, Bhagur, Kavathe, Vaitarna backwaters, agricultural clinics, roadside coconut vendors & camping farms.
                 </p>
                 <Link href="/locations" className="about-region-link">
-                  <span>Explore All Locations</span>
+                  <span>Explore All Locations {totalLocations > 0 ? `(${totalLocations}+)` : ""}</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

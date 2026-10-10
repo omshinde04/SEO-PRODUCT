@@ -80,6 +80,9 @@ const patchLocationSchema = z
             .strict(),
 
         description: z.string().trim().max(3000),
+        marathiName: z.string().trim().max(120),
+        tagline: z.string().trim().max(160),
+        featuredOnAbout: z.boolean(),
 
         coverImage: z
             .object({
