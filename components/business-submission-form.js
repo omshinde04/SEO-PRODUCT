@@ -534,22 +534,22 @@ export default function BusinessSubmissionForm() {
                 Storefront Photo / Cover Image (Optional)
               </span>
               
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
+              <div className="submission-photo-upload-row">
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   disabled={uploadingPhoto}
                   onChange={handlePhotoUpload}
-                  style={{ maxWidth: "260px", padding: "8px" }}
+                  className="submission-file-input"
                 />
-                <span style={{ fontSize: "11px", color: "#858d83" }}>or paste photo link:</span>
+                <span className="submission-or-divider">or paste photo link:</span>
                 <input
                   type="url"
                   name="coverImageUrl"
                   value={form.coverImageUrl}
                   onChange={update}
                   placeholder="https://images.unsplash.com/... or image URL"
-                  style={{ flex: 1, minWidth: "200px" }}
+                  className="submission-url-input"
                 />
               </div>
 
