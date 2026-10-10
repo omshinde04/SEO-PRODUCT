@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
-const PROD_URI = "mongodb+srv://SEO-OM-PRODUCT:admin1234@ecommerce-cluster.ddi9clk.mongodb.net/SEO-Om?appName=ecommerce-cluster";
-const DEV_URI = "mongodb+srv://SEO-OM-PRODUCT:admin1234@ecommerce-cluster.ddi9clk.mongodb.net/SEO-Om-dev?appName=ecommerce-cluster";
+const PROD_URI = process.env.PROD_MONGODB_URI || process.env.MONGODB_URI;
+const DEV_URI = process.env.DEV_MONGODB_URI || process.env.MONGODB_URI;
 
 async function cloneBaselineToDev() {
   console.log("=== CLONING BASELINE PRODUCTION DATA TO DEV DATABASE ===");

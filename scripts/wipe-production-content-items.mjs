@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-const PROD_URI = "mongodb+srv://SEO-OM-PRODUCT:admin1234@ecommerce-cluster.ddi9clk.mongodb.net/SEO-Om?appName=ecommerce-cluster";
+dotenv.config({ path: ".env.local" });
+
+const PROD_URI = process.env.PROD_MONGODB_URI || process.env.MONGODB_URI;
 
 async function wipeProductionContentItems() {
   console.log("=== WIPING CONTENT ITEMS FROM PRODUCTION (SEO-Om) ===");
