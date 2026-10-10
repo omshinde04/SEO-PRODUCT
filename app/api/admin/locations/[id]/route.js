@@ -148,14 +148,7 @@ function validateCoordinateMerge(current, updates) {
  * Validate the proposed parent and prevent hierarchy cycles.
  */
 async function validateParent(parentId, childType, locationId) {
-    if (parentId === null) {
-        if (!["country", "region"].includes(childType)) {
-            return apiError(
-                "Only country or region locations can be top-level locations.",
-                400
-            );
-        }
-
+    if (!parentId) {
         return null;
     }
 
@@ -382,23 +375,16 @@ export async function PATCH(request, { params }) {
 
         /*
          * Safeguard 2:
-         * Do not deactivate a location while it has active children.
+         * Cascade soft-deactivation to direct active children when deactivating.
          */
         if (
             updates.status === "inactive" &&
             location.status === "active"
         ) {
-            const activeChildren = await Location.exists({
-                parent: location._id,
-                status: "active",
-            });
-
-            if (activeChildren) {
-                return apiError(
-                    "Deactivate or reassign active child locations first.",
-                    409
-                );
-            }
+            await Location.updateMany(
+                { parent: location._id, status: "active" },
+                { status: "inactive", updatedBy: auth.user.id }
+            );
         }
 
         /*
@@ -526,36 +512,28 @@ export async function DELETE(_request, { params }) {
             });
         }
 
-        const activeChildren = await Location.exists({
-            parent: location._id,
-            status: "active",
-        });
+        // Soft-deactivate any active child locations to preserve hierarchy consistency
+        await Location.updateMany(
+            { parent: location._id, status: "active" },
+            { status: "inactive", updatedBy: auth.user.id }
+        );
 
-        if (activeChildren) {
-            return apiError(
-                "Deactivate or reassign active child locations first.",
-                409
-            );
-        }
-
-        const linkedBusiness = await Business.exists({
+        // Count linked businesses to inform the admin
+        const linkedBusinessCount = await Business.countDocuments({
             location: location._id,
         });
-
-        if (linkedBusiness) {
-            return apiError(
-                "This location is referenced by businesses. Reassign those businesses before deactivating it.",
-                409
-            );
-        }
 
         location.status = "inactive";
         location.updatedBy = auth.user.id;
 
         await location.save();
 
+        const message = linkedBusinessCount > 0
+            ? `Location deactivated (${linkedBusinessCount} linked business${linkedBusinessCount === 1 ? "" : "es"} unlisted from public view until reactivated).`
+            : "Location deactivated successfully.";
+
         return apiSuccess({
-            message: "Location deactivated successfully.",
+            message,
             item: location.toObject(),
         });
     } catch (error) {

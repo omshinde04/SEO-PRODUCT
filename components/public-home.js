@@ -3,6 +3,7 @@
 import Link from "next/link";
 import OpenStreetMapPlaceAutocomplete from "@/components/openstreetmap-place-autocomplete";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 import { useCallback, useMemo, useState } from "react";
 
 const TYPES = [
@@ -179,7 +180,7 @@ function BusinessCard({ item, index }) {
   const fallbackGradient = GRADIENTS[index % GRADIENTS.length];
 
   return (
-    <article className="saas-business-card">
+    <article className={`saas-business-card ${item.isSponsored ? "is-sponsored-card" : ""}`}>
       <Link
         href={`/businesses/${item.slug}`}
         className="saas-card-media"
@@ -211,7 +212,13 @@ function BusinessCard({ item, index }) {
           </span>
 
           <div className="card-badges-right">
-            {item.isFeatured && (
+            {item.isSponsored && (
+              <span className="card-badge sponsored-badge" title="Promoted Sponsored Ad">
+                <span className="sponsored-sparkle">✦</span>
+                <span>{item.sponsoredBadge || "Sponsored"}</span>
+              </span>
+            )}
+            {item.isFeatured && !item.isSponsored && (
               <span className="card-badge featured-badge" title="Featured local business">
                 <HomeIcon name="star" size={12} />
                 <span>Featured</span>
@@ -230,6 +237,15 @@ function BusinessCard({ item, index }) {
       </Link>
 
       <div className="saas-card-body">
+        {item.isSponsored && (
+          <div className="sponsored-card-header-bar">
+            <span className="sponsored-platform-label">
+              <span className="sponsored-sparkle">✦</span> {item.sponsoredBadge || "Sponsored"}
+            </span>
+            <span className="sponsored-promoted-pill">Promoted Ad</span>
+          </div>
+        )}
+
         <div className="saas-card-type-row">
           <span className="type-badge-pill">
             {item.businessType?.replace(/_/g, " ") || "local business"}
@@ -246,11 +262,50 @@ function BusinessCard({ item, index }) {
           <Link href={`/businesses/${item.slug}`}>{item.name}</Link>
         </h3>
 
+        {item.isSponsored && item.sponsoredTagline && (
+          <div className="sponsored-ad-offer-banner">
+            <span className="offer-badge-icon">🏷️ OFFER</span>
+            <p className="offer-badge-text">{item.sponsoredTagline}</p>
+          </div>
+        )}
+
         <p className="saas-card-description">
           {item.tagline ||
             item.description ||
             "Discover verified services, timings, customer reviews, and directions."}
         </p>
+
+        {/* Sponsored direct quick actions */}
+        {item.isSponsored && (item.contact?.phone || item.contact?.whatsapp) && (
+          <div className="sponsored-quick-actions">
+            {item.contact?.phone && (
+              <a
+                href={`tel:${item.contact.phone}`}
+                className="sponsored-action-btn action-call"
+                title="Call Business"
+              >
+                📞 Call
+              </a>
+            )}
+            {item.contact?.whatsapp && (
+              <a
+                href={`https://wa.me/${item.contact.whatsapp.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sponsored-action-btn action-wa"
+                title="WhatsApp Business"
+              >
+                💬 WhatsApp
+              </a>
+            )}
+            <Link
+              href={`/businesses/${item.slug}`}
+              className="sponsored-action-btn action-view"
+            >
+              Explore →
+            </Link>
+          </div>
+        )}
 
         <div className="saas-card-footer">
           <span className="saas-location-tag" title={location || "Local area"}>
@@ -388,13 +443,13 @@ export default function PublicHome({ initialData = null }) {
           </div>
 
           <h1 className="home-hero-heading">
-            Good local places.
+            Discover Local Businesses in Nashik District.
             <br />
-            <em>Closer than you think.</em>
+            <em>Ghoti, Igatpuri &amp; Beyond.</em>
           </h1>
 
           <p className="home-hero-subtext">
-            Discover verified dining, stays, healthcare, shops, and essential everyday services across Ghoti, Igatpuri, and Nashik.
+            Explore verified highway dhabas, local farmstays, healthcare, shops, and essential everyday services across Ghoti, Igatpuri, Nashik City, and NH-160 highway on GaavConnect.
           </p>
 
           {/* Integrated Clean SaaS Search Bar */}
@@ -795,6 +850,20 @@ export default function PublicHome({ initialData = null }) {
             </Link>
           </div>
         )}
+
+        {/* Sponsored Promotion Banner */}
+        <div className="home-promote-banner">
+          <div className="promote-banner-content">
+            <span className="promote-banner-badge">✦ PROMOTE YOUR BUSINESS</span>
+            <h3>Want your business featured as a Top Sponsored Ad?</h3>
+            <p>
+              Get prominent social-style placement on GaavConnect, custom promotional offer headlines, and direct Call & WhatsApp customer leads.
+            </p>
+          </div>
+          <Link href="/promote" className="promote-banner-btn">
+            Promote Your Business ↗
+          </Link>
+        </div>
       </section>
 
       {/* Local Story Feature Banner */}
@@ -834,6 +903,39 @@ export default function PublicHome({ initialData = null }) {
         </div>
       </section>
 
+      {/* Official Instagram Community Section */}
+      <section className="home-instagram-section" aria-label="Official Instagram Community">
+        <div className="home-instagram-card">
+          <div className="home-instagram-left">
+            <span className="insta-badge-pill">📸 OFFICIAL INSTAGRAM · @gaavconnect.in</span>
+            <h2>Discover Nashik, Ghoti &amp; Igatpuri on Instagram</h2>
+            <p>
+              Follow <strong>@gaavconnect.in</strong> for daily reels of hidden camping spots, authentic NH-160 highway dhabas, lake view farmstays, and featured entrepreneurs across Nashik district.
+            </p>
+            <div className="home-instagram-meta">
+              <span>Founded by <strong>Om Vilas Shinde</strong></span>
+              <span className="meta-dot">·</span>
+              <span>Helpline: <a href="tel:+919373545169" className="text-white hover:underline"><strong>+91 9373545169</strong></a></span>
+              <span className="meta-dot">·</span>
+              <a href="https://wa.me/919373545169" target="_blank" rel="noopener noreferrer" className="text-emerald-300 hover:underline">
+                WhatsApp Direct
+              </a>
+            </div>
+          </div>
+          <div className="home-instagram-right">
+            <a
+              href="https://instagram.com/gaavconnect.in?vrfl=eHM3azVteWFoNml3"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="home-instagram-follow-btn"
+            >
+              <span>Follow @gaavconnect.in</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Call to Action Banner */}
       <section className="add-cta">
         <div className="cta-icon">
@@ -855,66 +957,7 @@ export default function PublicHome({ initialData = null }) {
       </section>
 
       {/* Site Footer */}
-      <footer className="site-footer">
-        <div className="footer-main">
-          <div className="footer-brand">
-            <Link href="/" className="brand footer-brand-logo-link" aria-label="GaavConnect home">
-              <img
-                className="brand-logo footer-brand-logo"
-                src="/gaavconnect-logo.svg"
-                alt="GaavConnect — Your Local Connection"
-                width="270"
-                height="75"
-                loading="lazy"
-              />
-            </Link>
-            <p>
-              A more thoughtful way to find the businesses, people and places that make a place feel like home.
-            </p>
-          </div>
-
-          <div className="footer-links">
-            <strong>Discover</strong>
-            <Link href="/businesses">All businesses</Link>
-            <Link href="/categories">Categories</Link>
-            <Link href="/locations">Places & locations</Link>
-          </div>
-
-          <div className="footer-links">
-            <strong>For business owners</strong>
-            <Link href="/add-business">List your business</Link>
-            <Link href="/for-businesses">Business resources</Link>
-            <a href="#about">Why GaavConnect?</a>
-          </div>
-
-          <div className="footer-links">
-            <strong>Trust & privacy</strong>
-            <Link href="/about">About GaavConnect</Link>
-            <Link href="/help">Help centre</Link>
-            <Link href="/privacy">Privacy notice</Link>
-            <Link href="/cookies">Cookie policy</Link>
-            <button type="button" className="footer-cookie-settings" data-open-cookie-settings>
-              Cookie settings
-            </button>
-          </div>
-
-          <div className="footer-note">
-            <span className="footer-spark">✳</span>
-            <p>
-              Find good things.
-              <br />
-              <em>Keep them close.</em>
-            </p>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} GaavConnect. Made for local life.</span>
-          <span>
-            Discover kindly. Support locally. <span aria-hidden="true">♥</span>
-          </span>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

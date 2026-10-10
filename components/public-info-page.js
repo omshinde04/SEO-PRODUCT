@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 
 export default function PublicInfoPage({ eyebrow = "GAAVCONNECT", title, highlight, description, heroImage, sections = [], cta, breadcrumbs = [] }) {
   return (
@@ -26,7 +27,7 @@ export default function PublicInfoPage({ eyebrow = "GAAVCONNECT", title, highlig
         ))}
         {cta && <section className="info-cta"><div><span className="info-eyebrow">{cta.eyebrow || "TAKE THE NEXT STEP"}</span><h2>{cta.title}</h2><p>{cta.description}</p></div><Link href={cta.href} className="info-cta-button">{cta.label} <span aria-hidden="true">↗</span></Link></section>}
       </div>
-      <footer className="info-footer"><div className="info-footer-main"><div><Link href="/" className="info-footer-logo"><img src="/gaavconnect-logo.svg" alt="GaavConnect" width="210" height="59" loading="lazy" /></Link><p>Discover local businesses, useful services and places worth knowing.</p></div><div><strong>Discover</strong><Link href="/businesses">Businesses</Link><Link href="/categories">Categories</Link><Link href="/locations">Locations</Link><Link href="/places">Places & Attractions</Link><Link href="/guides">Local guides</Link><Link href="/events">Community events</Link></div><div><strong>About</strong><Link href="/about">Our story</Link><Link href="/how-it-works">How it works</Link><Link href="/for-businesses">For businesses</Link><Link href="/contact">Contact</Link><Link href="/help">Help centre</Link></div><div><strong>Your choices</strong><Link href="/privacy">Privacy</Link><Link href="/cookies">Cookie policy</Link><Link href="/accessibility">Accessibility</Link><Link href="/safety">Trust & safety</Link><button type="button" data-open-cookie-settings>Cookie settings</button></div></div><div className="info-footer-bottom"><span>© {new Date().getFullYear()} GaavConnect</span><span>Discover kindly. Support locally. <b>♥</b></span></div></footer>
+      <PublicFooter />
     </main>
   );
 }

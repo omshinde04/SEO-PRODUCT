@@ -75,6 +75,11 @@ export default function ContentAdminPage({ type }) {
     const [search, setSearch] = useState("");
     const [locations, setLocations] = useState([]);
     const [mediaItems, setMediaItems] = useState([]);
+    const [allEvents, setAllEvents] = useState([]);
+    const [allPlaces, setAllPlaces] = useState([]);
+    const [allGuides, setAllGuides] = useState([]);
+    const [assignTargetId, setAssignTargetId] = useState("");
+    const [quickAssign, setQuickAssign] = useState({});
 
     const [title, setTitle] = useState("");
     const [slug, setSlug] = useState("");
@@ -164,6 +169,19 @@ export default function ContentAdminPage({ type }) {
                 ]);
                 setLocations(locationResult.items || []);
                 setMediaItems(mediaResult.items || []);
+            }
+
+            if (type === "media") {
+                const [locationResult, eventsResult, placesResult, guidesResult] = await Promise.all([
+                    request("/api/admin/locations?status=active&limit=100").catch(() => ({ items: [] })),
+                    request("/api/admin/content/events?limit=100").catch(() => ({ items: [] })),
+                    request("/api/admin/content/places?limit=100").catch(() => ({ items: [] })),
+                    request("/api/admin/content/guides?limit=100").catch(() => ({ items: [] })),
+                ]);
+                setLocations(locationResult.items || []);
+                setAllEvents(eventsResult.items || []);
+                setAllPlaces(placesResult.items || []);
+                setAllGuides(guidesResult.items || []);
             }
         } catch (loadError) {
             setError(loadError.message || "Could not load records.");
@@ -429,8 +447,22 @@ export default function ContentAdminPage({ type }) {
             if (!response.ok) {
                 throw new Error(asset.error?.message || "Cloud image upload failed.");
             }
-            if (!asset.secure_url || !asset.public_id || !asset.folder) {
+            if (!asset.secure_url || !asset.public_id) {
                 throw new Error("Cloud image provider returned incomplete asset details.");
+            }
+
+            let assignTo = undefined;
+            if (assignTargetId) {
+                let targetType = "location";
+                if (uploadPurpose === "event-cover") targetType = "event";
+                else if (uploadPurpose === "place-cover") targetType = "place";
+                else if (uploadPurpose === "guide-cover") targetType = "guide";
+                else if (uploadPurpose === "business-cover" || uploadPurpose === "business-logo") targetType = "business";
+
+                assignTo = {
+                    entityType: targetType,
+                    entityId: assignTargetId,
+                };
             }
 
             await request("/api/admin/content/media", {
@@ -438,25 +470,75 @@ export default function ContentAdminPage({ type }) {
                 body: JSON.stringify({
                     url: asset.secure_url,
                     publicId: asset.public_id,
-                    folder: asset.folder,
-                    alt,
+                    folder: asset.folder || upload.folder,
+                    alt: alt || file.name.replace(/\.[^.]+$/, "").slice(0, 200),
                     caption,
-                    mimeType: asset.resource_type + "/" + asset.format,
-                    bytes: asset.bytes,
-                    width: asset.width,
-                    height: asset.height,
+                    mimeType: (asset.resource_type || "image") + "/" + (asset.format || "png"),
+                    bytes: asset.bytes || file.size,
+                    width: asset.width || null,
+                    height: asset.height || null,
+                    assignTo,
                 }),
             });
 
             setFile(null);
-            setUploadPurpose("place-cover");
+            setAssignTargetId("");
             setAlt("");
             setCaption("");
             form.reset();
-            setNotice("Image uploaded and added to the media library.");
+            setNotice(assignTo ? "Image uploaded and connected as live cover!" : "Image uploaded and added to the media library.");
             await load();
         } catch (uploadError) {
             setError(uploadError.message || "Upload failed.");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function handleQuickAssign(mediaId, targetValue) {
+        if (!targetValue) return;
+        const [entityType, entityId] = targetValue.split(":");
+        setBusy(true);
+        setError("");
+        setNotice("");
+        try {
+            await request("/api/admin/content/media", {
+                method: "PATCH",
+                body: JSON.stringify({
+                    id: mediaId,
+                    data: {
+                        assignTo: { entityType, entityId },
+                    },
+                }),
+            });
+            setQuickAssign((prev) => ({ ...prev, [mediaId]: "" }));
+            setNotice("Cover image successfully connected!");
+            await load();
+        } catch (err) {
+            setError(err.message || "Failed to assign cover image.");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function handleDisconnect(mediaId, entityType, entityId) {
+        setBusy(true);
+        setError("");
+        setNotice("");
+        try {
+            await request("/api/admin/content/media", {
+                method: "PATCH",
+                body: JSON.stringify({
+                    id: mediaId,
+                    data: {
+                        unassignFrom: { entityType, entityId },
+                    },
+                }),
+            });
+            setNotice("Image disconnected.");
+            await load();
+        } catch (err) {
+            setError(err.message || "Failed to disconnect image.");
         } finally {
             setBusy(false);
         }
@@ -988,7 +1070,7 @@ export default function ContentAdminPage({ type }) {
                         <input required type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => setFile(event.target.files?.[0] || null)} className={inputClass} />
                     </Field>
                     <Field label="Upload purpose">
-                        <select value={uploadPurpose} onChange={(event) => setUploadPurpose(event.target.value)} className={inputClass}>
+                        <select value={uploadPurpose} onChange={(event) => { setUploadPurpose(event.target.value); setAssignTargetId(""); }} className={inputClass}>
                             <option value="place-cover">Place cover</option>
                             <option value="guide-cover">Guide cover</option>
                             <option value="event-cover">Event cover</option>
@@ -1000,6 +1082,46 @@ export default function ContentAdminPage({ type }) {
                             <option value="seo-image">SEO / Social share image</option>
                         </select>
                     </Field>
+                    {uploadPurpose === "location-cover" && locations.length > 0 && (
+                        <Field label="Connect directly to Location (optional)">
+                            <select value={assignTargetId} onChange={(e) => setAssignTargetId(e.target.value)} className={inputClass}>
+                                <option value="">Keep in media library (unassigned)</option>
+                                {locations.map((loc) => (
+                                    <option key={loc._id} value={loc._id}>📍 {loc.name} ({loc.type})</option>
+                                ))}
+                            </select>
+                        </Field>
+                    )}
+                    {uploadPurpose === "event-cover" && allEvents.length > 0 && (
+                        <Field label="Connect directly to Event (optional)">
+                            <select value={assignTargetId} onChange={(e) => setAssignTargetId(e.target.value)} className={inputClass}>
+                                <option value="">Keep in media library (unassigned)</option>
+                                {allEvents.map((evt) => (
+                                    <option key={evt._id} value={evt._id}>📅 {evt.title}</option>
+                                ))}
+                            </select>
+                        </Field>
+                    )}
+                    {uploadPurpose === "place-cover" && allPlaces.length > 0 && (
+                        <Field label="Connect directly to Place (optional)">
+                            <select value={assignTargetId} onChange={(e) => setAssignTargetId(e.target.value)} className={inputClass}>
+                                <option value="">Keep in media library (unassigned)</option>
+                                {allPlaces.map((pl) => (
+                                    <option key={pl._id} value={pl._id}>🏛 {pl.title}</option>
+                                ))}
+                            </select>
+                        </Field>
+                    )}
+                    {uploadPurpose === "guide-cover" && allGuides.length > 0 && (
+                        <Field label="Connect directly to Guide (optional)">
+                            <select value={assignTargetId} onChange={(e) => setAssignTargetId(e.target.value)} className={inputClass}>
+                                <option value="">Keep in media library (unassigned)</option>
+                                {allGuides.map((g) => (
+                                    <option key={g._id} value={g._id}>📖 {g.title}</option>
+                                ))}
+                            </select>
+                        </Field>
+                    )}
                     <Field label="Alt text">
                         <input value={alt} maxLength={200} onChange={(event) => setAlt(event.target.value)} className={inputClass} placeholder="Describe the image" />
                     </Field>
@@ -1058,6 +1180,84 @@ export default function ContentAdminPage({ type }) {
                                             <a href={item.url} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-blue-700 underline">
                                                 {item.url}
                                             </a>
+
+                                            {/* Live Usage Badges */}
+                                            {item.usages && item.usages.length > 0 ? (
+                                                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                                                    {item.usages.map((usage, idx) => (
+                                                        <span key={idx} className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
+                                                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                                            Live cover for {usage.entityType}: <span className="font-bold">{usage.name}</span>
+                                                            {usage.publicUrl && (
+                                                                <a href={usage.publicUrl} target="_blank" rel="noreferrer" className="ml-1 text-blue-600 hover:text-blue-800 font-normal underline">
+                                                                    (View ↗)
+                                                                </a>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => handleDisconnect(item._id, usage.entityType, usage.id)}
+                                                                className="ml-1.5 text-xs text-red-500 hover:text-red-700 font-bold"
+                                                                title="Disconnect this cover image"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 w-fit px-2.5 py-0.5 rounded-full font-medium">
+                                                    ⚪ Unassigned (Not in use on public site)
+                                                </p>
+                                            )}
+
+                                            {/* Quick Connect Dropdown */}
+                                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                <select
+                                                    aria-label={"Connect " + item.publicId}
+                                                    value={quickAssign[item._id] || ""}
+                                                    onChange={(e) => setQuickAssign((prev) => ({ ...prev, [item._id]: e.target.value }))}
+                                                    className="rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-xs text-slate-800 max-w-xs"
+                                                >
+                                                    <option value="">Connect as cover to…</option>
+                                                    {locations.length > 0 && (
+                                                        <optgroup label="Locations">
+                                                            {locations.map((loc) => (
+                                                                <option key={loc._id} value={`location:${loc._id}`}>📍 Location: {loc.name}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    )}
+                                                    {allEvents.length > 0 && (
+                                                        <optgroup label="Events">
+                                                            {allEvents.map((evt) => (
+                                                                <option key={evt._id} value={`event:${evt._id}`}>📅 Event: {evt.title}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    )}
+                                                    {allPlaces.length > 0 && (
+                                                        <optgroup label="Places">
+                                                            {allPlaces.map((pl) => (
+                                                                <option key={pl._id} value={`place:${pl._id}`}>🏛 Place: {pl.title}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    )}
+                                                    {allGuides.length > 0 && (
+                                                        <optgroup label="Guides">
+                                                            {allGuides.map((g) => (
+                                                                <option key={g._id} value={`guide:${g._id}`}>📖 Guide: {g.title}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    )}
+                                                </select>
+                                                <button
+                                                    type="button"
+                                                    disabled={!quickAssign[item._id] || busy}
+                                                    onClick={() => handleQuickAssign(item._id, quickAssign[item._id])}
+                                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+                                                >
+                                                    Connect
+                                                </button>
+                                            </div>
                                             <div className="mt-3 grid w-full max-w-xl gap-2 sm:grid-cols-2">
                                                 <input
                                                     aria-label={"Alt text for " + item.publicId}

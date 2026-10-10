@@ -445,6 +445,7 @@ export default function DashboardClient({ user }) {
                             ))}
                         </div>
                         <div className="mt-3 flex flex-wrap gap-3">
+                            <Link href="/admin/analytics" className="rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100">Website Analytics</Link>
                             <Link href="/admin/media" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">Media library</Link>
                             <Link href="/admin/seo" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO settings</Link>
                             <Link href="/admin/seo-templates" className="rounded-lg border bg-white px-4 py-3 text-sm font-medium">SEO templates</Link>

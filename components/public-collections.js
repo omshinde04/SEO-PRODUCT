@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 
 export default function PublicCollections({ kind }) {
   const isCategory = kind === "categories";
@@ -37,6 +38,6 @@ export default function PublicCollections({ kind }) {
     <section className="collection-wrap"><div className="collection-heading"><span className="eyebrow">{isCategory ? "BROWSE BY INTEREST" : "BROWSE BY PLACE"}</span><strong>{loading ? "Finding your next favourite…" : `${items.length} ${isCategory ? "categories" : "places"} to explore`}</strong></div>
       {error ? <div className="directory-empty"><h3>We couldn’t load this just yet</h3><p>{error}</p><button type="button" onClick={()=>setQuery(v=>v)}>Try again</button></div> : !loading && items.length===0 ? <div className="directory-empty"><h3>Nothing here just yet</h3><p>Try a different search, or come back as more local listings are added.</p><button type="button" onClick={()=>setQuery("")}>Clear search</button></div> : <div className="collection-grid">{(loading ? Array.from({length:6},(_,i)=>({_id:i,name:"Loading…",slug:""})) : items).map((item,i)=><Link key={item._id || i} href={item.slug ? `/${kind}/${item.slug}` : "#"} className="collection-card"><span className={`collection-symbol collection-symbol-${i%6}`}>{isCategory ? (item.icon || ["✳","⌂","◈","✦","⌘","◎"][i%6]) : "⌖"}</span><span className="collection-card-copy"><strong>{item.name}</strong><small>{item.description || (isCategory ? "Explore local listings in this category" : item.type ? item.type.charAt(0).toUpperCase()+item.type.slice(1) : "Explore this local area")}</small></span><span className="collection-arrow">↗</span></Link>)}</div>}
     </section>
-    <footer className="directory-footer"><Link href="/">GaavConnect</Link><span>Find good things, closer to home.</span><Link href="/businesses">Explore all listings →</Link></footer>
+    <PublicFooter />
   </main>;
 }

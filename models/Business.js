@@ -258,6 +258,11 @@ const businessSchema = new Schema(
 
         // 10. Publication and moderation
         isFeatured: { type: Boolean, default: false, index: true },
+        isSponsored: { type: Boolean, default: false, index: true },
+        sponsoredUntil: { type: Date, default: null },
+        sponsoredTagline: { type: String, trim: true, maxlength: 200, default: "" },
+        sponsoredBadge: { type: String, trim: true, maxlength: 50, default: "Sponsored" },
+        sponsoredPriority: { type: Number, default: 0 },
         status: {
             type: String,
             enum: ["draft", "published", "archived"],
@@ -323,10 +328,13 @@ businessSchema.index(
 );
 
 businessSchema.index(
-    { "address.city": 1, status: 1 },
-    { name: "business_city_status" }
+    { isSponsored: -1, status: 1, sponsoredPriority: -1 },
+    { name: "business_sponsored_priority" }
 );
 
+if (process.env.NODE_ENV !== "production" && mongoose.models.Business) {
+    delete mongoose.models.Business;
+}
 
 const Business =
     mongoose.models.Business ||

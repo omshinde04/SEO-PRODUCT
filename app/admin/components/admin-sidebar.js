@@ -6,11 +6,23 @@ import { usePathname } from "next/navigation";
 
 const navigation = [
     { label: "Overview", href: "/admin/dashboard", icon: "grid", active: true },
+    {
+        label: "Website Analytics",
+        href: "/admin/analytics",
+        icon: "chart",
+        active: true,
+    },
 
     {
         label: "Businesses",
         href: "/admin/businesses",
         icon: "building",
+        active: true,
+    },
+    {
+        label: "Promotions & Ads",
+        href: "/admin/promotions",
+        icon: "spark",
         active: true,
     },
 
@@ -31,7 +43,9 @@ const secondaryNavigation = [
 function NavIcon({ name, size = 18 }) {
     const paths = {
         grid: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
+        chart: <><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></>,
         building: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M9 21v-4h6v4M8 7h2m4 0h2M8 11h2m4 0h2" /></>,
+        spark: <><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z" /><path d="M5 3v4M3 5h4M19 17v4M17 19h4" /></>,
         layers: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 16l9 5 9-5" /></>,
         map: <><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z" /><path d="M9 3v15m6-12v15" /></>,
         search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></>,

@@ -5,6 +5,9 @@ import ContentItem from "@/models/ContentItem";
 import Business from "@/models/Business";
 import Location from "@/models/Location";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
+import StructuredData from "@/components/structured-data";
+import { buildEntityMetadata, getEntityStructuredData } from "@/lib/seo/public-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -51,25 +54,7 @@ async function getEvent(slug) {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const data = await getEvent(slug);
-  if (!data?.eventItem) {
-    return { title: "Event Not Found | GaavConnect", robots: { index: false, follow: true } };
-  }
-  const { eventItem } = data;
-  const title = `${eventItem.seo?.title || eventItem.title} | GaavConnect Events`;
-  const description = eventItem.seo?.description || eventItem.summary || `Join ${eventItem.title} in Nashik District.`;
-  return {
-    title: { absolute: title },
-    description,
-    alternates: { canonical: `/events/${slug}` },
-    openGraph: {
-      type: "article",
-      title,
-      description,
-      url: `/events/${slug}`,
-      ...(eventItem.coverImage?.url ? { images: [{ url: eventItem.coverImage.url, alt: eventItem.title }] } : {}),
-    },
-  };
+  return buildEntityMetadata({ type: "event", slug, path: "events" });
 }
 
 export default async function EventDetailPage({ params }) {
@@ -78,14 +63,17 @@ export default async function EventDetailPage({ params }) {
   if (!data?.eventItem) notFound();
 
   const { eventItem, nearbyBusinesses } = data;
+  const structuredData = await getEntityStructuredData({ type: "event", slug });
   const startFormatted = formatFullDate(eventItem.event?.startsAt);
   const endFormatted = formatFullDate(eventItem.event?.endsAt);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
-      <PublicNavbar />
+    <>
+      <StructuredData data={structuredData} />
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+        <PublicNavbar />
 
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Breadcrumb */}
         <nav className="text-xs text-slate-500 mb-6 flex items-center gap-1.5" aria-label="Breadcrumb">
           <Link href="/" className="hover:text-slate-900 transition">Home</Link>
@@ -238,9 +226,8 @@ export default async function EventDetailPage({ params }) {
         )}
       </main>
 
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} GaavConnect · Discover Local Businesses & Events
-      </footer>
+      <PublicFooter />
     </div>
+    </>
   );
 }

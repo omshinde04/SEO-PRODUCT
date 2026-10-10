@@ -11,8 +11,23 @@ const requestSchema = z.object({ purpose: z.enum(Object.keys(UPLOAD_PURPOSES)) }
 function hasSameOrigin(request) {
     const origin = request.headers.get("origin");
     if (!origin) return false;
-    try { return new URL(origin).origin === new URL(request.url).origin; }
-    catch { return false; }
+    try {
+        const originUrl = new URL(origin);
+        const requestUrl = new URL(request.url);
+        if (originUrl.origin === requestUrl.origin) return true;
+
+        const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+        if (host && originUrl.host === host) return true;
+
+        const isLocalOrigin = originUrl.hostname === "localhost" || originUrl.hostname === "127.0.0.1";
+        const isLocalReq = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
+        if (isLocalOrigin && isLocalReq && originUrl.port === requestUrl.port) {
+            return true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
 }
 
 /** Signs one server-selected upload folder and server-generated public ID. */

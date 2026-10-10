@@ -263,18 +263,31 @@ export default function SubmissionsClient({ user }) {
             name: item.businessName || "",
             slug: slugify(item.businessName || "business"),
             tagline: item.tagline || "",
-            description: item.message || "",
+            description: item.description || item.message || "",
             businessType: item.businessType || "business",
             category: matchedCategory?._id || categories[0]?._id || "",
             location: matchedLocation?._id || locations[0]?._id || "",
             status: "draft",
             verificationStatus: "verified",
+            priceRange: item.priceRange || "not_applicable",
+            coverImage: item.coverImageUrl
+                ? { url: item.coverImageUrl, publicId: "sub-" + item._id, alt: item.businessName }
+                : { url: "", publicId: "", alt: "" },
             contact: {
                 phone: item.phone || "",
+                alternatePhone: "",
                 whatsapp: item.whatsapp || item.phone || "",
                 email: item.email || "",
                 website: item.website || "",
                 preferredMethod: "any",
+            },
+            socialLinks: {
+                instagram: item.instagram || "",
+                facebook: "",
+                youtube: "",
+                linkedin: "",
+                x: "",
+                tiktok: "",
             },
             address: {
                 line1: item.address?.line1 || "",
@@ -286,7 +299,9 @@ export default function SubmissionsClient({ user }) {
                 postalCode: item.address?.postalCode || "",
                 formatted: item.address?.formatted || item.locationName || "",
             },
+            openingHoursNotes: item.openingHours || "",
             services: Array.isArray(item.services) ? item.services : [],
+            amenitiesText: Array.isArray(item.amenities) ? item.amenities.join("\n") : "",
         };
 
         setActiveSubmissionId(item._id);
@@ -661,9 +676,47 @@ export default function SubmissionsClient({ user }) {
                                                         </a>
                                                     ) : "—"}
                                                 </Field>
+                                                <Field label="Instagram">
+                                                    {item.instagram ? (
+                                                        <a className="break-all text-pink-700 hover:underline font-medium" href={item.instagram.startsWith("http") ? item.instagram : `https://instagram.com/${item.instagram.replace(/^@/, "")}`} target="_blank" rel="noreferrer">
+                                                            {item.instagram}
+                                                        </a>
+                                                    ) : "—"}
+                                                </Field>
+                                                <Field label="Price Range">
+                                                    <span className="capitalize">{item.priceRange?.replace(/_/g, " ") || "Not specified"}</span>
+                                                </Field>
+                                                <Field label="Operating Hours & Days">
+                                                    <span>{item.openingHours || "—"}</span>
+                                                </Field>
+                                                {item.coverImageUrl && (
+                                                    <div className="sm:col-span-2 xl:col-span-3">
+                                                        <Field label="Submitted Photo / Cover Image">
+                                                            <div className="mt-1 flex items-center gap-3">
+                                                                <img src={item.coverImageUrl} alt="Submitted photo" className="h-20 w-32 rounded-xl object-cover border border-slate-200" />
+                                                                <a href={item.coverImageUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">
+                                                                    View original full size ↗
+                                                                </a>
+                                                            </div>
+                                                        </Field>
+                                                    </div>
+                                                )}
+                                                {item.amenities?.length > 0 && (
+                                                    <div className="sm:col-span-2 xl:col-span-3">
+                                                        <Field label="Amenities & Facilities">
+                                                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                                                {item.amenities.map((a, idx) => (
+                                                                    <span key={idx} className="rounded-lg bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 border border-emerald-200 font-medium">
+                                                                        ✓ {a}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </Field>
+                                                    </div>
+                                                )}
                                                 {item.services?.length > 0 && (
                                                     <div className="sm:col-span-2 xl:col-span-3">
-                                                        <Field label="Services & Facilities">
+                                                        <Field label="Services & Specialties">
                                                             <div className="flex flex-wrap gap-1.5 mt-1">
                                                                 {item.services.map((s, idx) => (
                                                                     <span key={idx} className="rounded bg-white px-2 py-0.5 text-xs text-slate-700 border border-slate-200">
@@ -674,9 +727,13 @@ export default function SubmissionsClient({ user }) {
                                                         </Field>
                                                     </div>
                                                 )}
-                                                <div className="sm:col-span-2 xl:col-span-3">
-                                                    <Field label="Business description / message">{item.message}</Field>
-                                                </div>
+                                                {(item.description || item.message) && (
+                                                    <div className="sm:col-span-2 xl:col-span-3">
+                                                        <Field label="Business description & details">
+                                                            <p className="whitespace-pre-wrap">{item.description || item.message}</p>
+                                                        </Field>
+                                                    </div>
+                                                )}
                                                 <Field label="Submitted on">{formatDate(item.createdAt)}</Field>
                                                 <Field label="Last updated">{formatDate(item.updatedAt)}</Field>
                                                 <Field label="Decision date">{formatDate(item.reviewedAt)}</Field>

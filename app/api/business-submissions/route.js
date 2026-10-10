@@ -45,22 +45,37 @@ const schema = z.object({
         formatted: z.string().trim().max(500).optional().default(""),
     }).strict().optional().default({}),
     services: z.array(z.string().trim().max(120)).max(50).optional().default([]),
+    amenities: z.array(z.string().trim().max(80)).max(50).optional().default([]),
     website: z.string().trim().max(2048).optional().default("")
         .refine(isHttpUrl, "Website must be a valid HTTP or HTTPS URL."),
+    instagram: z.string().trim().max(2048).optional().default(""),
+    coverImageUrl: z.string().trim().max(2048).optional().default("")
+        .refine(isHttpUrl, "Cover image must be a valid HTTP or HTTPS URL."),
+    description: z.string().trim().max(10000).optional().default(""),
+    openingHours: z.string().trim().max(500).optional().default(""),
+    priceRange: z.enum([
+        "budget", "moderate", "premium", "luxury", "not_applicable"
+    ]).optional().default("not_applicable"),
     message: z.string().trim().max(5000).optional().default(""),
 }).strict();
 
-export async function POST(request) {
+function hasAllowedOrigin(request) {
     const origin = request.headers.get("origin");
-
-    // This endpoint is intended for the first-party public submission form.
-    // Reject missing origins as well as cross-origin browser submissions.
-    if (!origin) {
-        return apiError("Request origin is required.", 403);
-    }
-
+    if (!origin) return false;
     try {
-        const allowedOrigins = new Set([new URL(request.url).origin]);
+        const originUrl = new URL(origin);
+        const requestUrl = new URL(request.url);
+        if (originUrl.origin === requestUrl.origin) return true;
+
+        const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+        if (host && originUrl.host === host) return true;
+
+        const isLocalOrigin = originUrl.hostname === "localhost" || originUrl.hostname === "127.0.0.1";
+        const isLocalReq = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
+        if (isLocalOrigin && isLocalReq && originUrl.port === requestUrl.port) {
+            return true;
+        }
+
         for (const configuredOrigin of [
             process.env.NEXT_PUBLIC_SITE_URL,
             process.env.SITE_URL,
@@ -68,20 +83,18 @@ export async function POST(request) {
             if (!configuredOrigin) continue;
             try {
                 const parsed = new URL(configuredOrigin);
-                if (["http:", "https:"].includes(parsed.protocol)) {
-                    allowedOrigins.add(parsed.origin);
-                }
-            } catch {
-                // Ignore malformed optional origin configuration; the request
-                // origin still has to match the application origin.
-            }
+                if (parsed.origin === originUrl.origin) return true;
+            } catch {}
         }
-
-        if (!allowedOrigins.has(new URL(origin).origin)) {
-            return apiError("Request origin is not allowed.", 403);
-        }
+        return false;
     } catch {
-        return apiError("Invalid request origin.", 403);
+        return false;
+    }
+}
+
+export async function POST(request) {
+    if (!hasAllowedOrigin(request)) {
+        return apiError("Request origin is not allowed.", 403);
     }
 
     const contentType = (request.headers.get("content-type") || "")
@@ -119,7 +132,7 @@ export async function POST(request) {
         const item = await BusinessSubmission.create(parsed.data);
         return apiSuccess({ received: true, id: item._id }, 201);
     } catch (error) {
-        console.error("[SUBMISSION]", error.message);
-        return apiError("Unable to submit your business right now.", 500);
+        console.error("[SUBMISSION]", error);
+        return apiError(error.message || "Unable to submit your business right now.", 500);
     }
 }

@@ -7,22 +7,63 @@ import CategoryBrowser from "@/components/category-browser";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Browse Local Business Categories in Nashik",
-  description: "Explore local business categories on GaavConnect, from food and shopping to healthcare, professional services, stays and tourism in Nashik district.",
-  alternates: { canonical: "/categories" },
-  openGraph: {
-    title: "Browse Local Business Categories in Nashik | GaavConnect",
-    description: "Explore categories and find nearby businesses and services across Nashik district.",
-    type: "website",
-    locale: "en_IN",
-  },
-};
+export async function generateMetadata() {
+  const settings = await getGlobalSeoSettings();
+  const siteUrl = settings.siteUrl || "https://gaavconnect.in";
+  const title = "Browse Business Categories in Nashik District (Ghoti, Igatpuri) | GaavConnect";
+  const description =
+    "Explore business categories across Nashik district — from highway dhabas and misal joints to agro farmstays, medical stores, mechanics, and shops on GaavConnect.";
+  const canonical = `${siteUrl}/categories`;
+  const logoUrl = `${siteUrl}/gaavconnect-logo.svg`;
+
+  return {
+    title: { absolute: title },
+    description,
+    keywords: [
+      "business categories Nashik",
+      "Igatpuri restaurants and dhabas",
+      "Ghoti local shops",
+      "agro resorts Nashik",
+      "mechanics NH-160",
+      "GaavConnect directory",
+    ],
+    alternates: { canonical },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "GaavConnect",
+      url: canonical,
+      locale: "en_IN",
+      images: [{ url: logoUrl, alt: "GaavConnect Categories Directory" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      site: "@gaavconnect.in",
+      creator: "@gaavconnect.in",
+      images: [logoUrl],
+    },
+  };
+}
 
 export default async function CategoriesPage() {
   let categories = [];
   const countMap = {};
   const settings = await getGlobalSeoSettings();
+  const siteUrl = settings.siteUrl || "https://gaavconnect.in";
 
   try {
     await connectDB();
@@ -51,18 +92,32 @@ export default async function CategoriesPage() {
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: "Local business categories in Nashik district",
-    url: `${settings.siteUrl}/categories`,
-    mainEntity: {
-      "@type": "ItemList",
-      itemListElement: categories.map((item, index) => ({
-        "@type": "ListItem",
-        position: index + 1,
-        name: item.name,
-        url: `${settings.siteUrl}/categories/${item.slug}`,
-      })),
-    },
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${siteUrl}/categories#page`,
+        name: "Local Business Categories in Nashik District",
+        description: "Explore all business categories across Nashik, Ghoti, and Igatpuri.",
+        url: `${siteUrl}/categories`,
+        isPartOf: { "@type": "WebSite", name: "GaavConnect", url: siteUrl },
+        mainEntity: {
+          "@type": "ItemList",
+          itemListElement: categories.map((item, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: item.name,
+            url: `${siteUrl}/categories/${item.slug}`,
+          })),
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+          { "@type": "ListItem", position: 2, name: "Categories", item: `${siteUrl}/categories` },
+        ],
+      },
+    ],
   };
 
   return (
@@ -72,4 +127,3 @@ export default async function CategoriesPage() {
     </>
   );
 }
-

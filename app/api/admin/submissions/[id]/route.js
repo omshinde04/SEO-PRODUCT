@@ -136,42 +136,62 @@ export async function POST(request, { params }) {
         if (!location) return apiError("Choose an active location.", 400);
 
         const publishStatus = parsed.data.publish ? "published" : "draft";
-        const description = parsed.data.description || submission.message || "";
-        if (publishStatus === "published" && !description.trim()) {
+        const description = (parsed.data.description || submission.description || submission.message || "").trim();
+        if (publishStatus === "published" && !description) {
             return apiError("Add a business description before publishing this listing.", 400);
         }
+
+        const formattedAddress = submission.address?.formatted ||
+            [submission.address?.line1, submission.address?.area, submission.locationName || location.name].filter(Boolean).join(", ") ||
+            submission.locationName || location.name || "";
 
         const businessData = {
             name: submission.businessName,
             slug: await uniqueSlug(submission.businessName),
-            tagline: "",
-            description: description.trim(),
+            tagline: submission.tagline || "",
+            description,
             businessType: parsed.data.businessType,
             category: category._id,
             location: location._id,
             contact: {
                 phone: submission.phone,
+                alternatePhone: "",
+                whatsapp: submission.whatsapp || "",
                 email: submission.email,
                 website: submission.website || "",
                 preferredMethod: "any",
             },
+            socialLinks: {
+                instagram: submission.instagram || "",
+            },
             address: {
-                city: submission.locationName || location.name || "",
-                formatted: submission.locationName || location.name || "",
+                line1: submission.address?.line1 || "",
+                area: submission.address?.area || "",
+                city: submission.address?.city || submission.locationName || location.name || "",
+                postalCode: submission.address?.postalCode || "",
+                formatted: formattedAddress,
                 country: "India",
             },
-            services: [],
-            amenities: [],
+            openingHours: {
+                timezone: "Asia/Kolkata",
+                weekly: {},
+                notes: submission.openingHours || "",
+            },
+            services: Array.isArray(submission.services) ? submission.services : [],
+            amenities: Array.isArray(submission.amenities) ? submission.amenities : [],
             paymentMethods: [],
             languages: [],
-            priceRange: "not_applicable",
+            priceRange: submission.priceRange || "not_applicable",
+            coverImage: submission.coverImageUrl
+                ? { url: submission.coverImageUrl, publicId: "sub-" + submission._id, alt: submission.businessName }
+                : null,
             status: publishStatus,
             publishedAt: publishStatus === "published" ? new Date() : null,
             verificationStatus: publishStatus === "published" ? "verified" : "unverified",
             isFeatured: false,
             seo: {
                 title: `${submission.businessName} | GaavConnect`.slice(0, 70),
-                description: description.trim().slice(0, 170),
+                description: description.slice(0, 170),
                 noIndex: false,
             },
             createdBy: auth.user.id,

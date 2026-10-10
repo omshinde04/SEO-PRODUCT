@@ -5,6 +5,9 @@ import ContentItem from "@/models/ContentItem";
 import Business from "@/models/Business";
 import Location from "@/models/Location";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
+import StructuredData from "@/components/structured-data";
+import { buildEntityMetadata, getEntityStructuredData } from "@/lib/seo/public-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -38,25 +41,7 @@ async function getPlace(slug) {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const data = await getPlace(slug);
-  if (!data?.place) {
-    return { title: "Place Not Found | GaavConnect", robots: { index: false, follow: true } };
-  }
-  const { place } = data;
-  const title = `${place.seo?.title || place.title} | GaavConnect`;
-  const description = place.seo?.description || place.summary || `Visit ${place.title} in Nashik District.`;
-  return {
-    title: { absolute: title },
-    description,
-    alternates: { canonical: `/places/${slug}` },
-    openGraph: {
-      type: "article",
-      title,
-      description,
-      url: `/places/${slug}`,
-      ...(place.coverImage?.url ? { images: [{ url: place.coverImage.url, alt: place.title }] } : {}),
-    },
-  };
+  return buildEntityMetadata({ type: "place", slug, path: "places" });
 }
 
 export default async function PlaceDetailPage({ params }) {
@@ -65,12 +50,15 @@ export default async function PlaceDetailPage({ params }) {
   if (!data?.place) notFound();
 
   const { place, nearbyBusinesses } = data;
+  const structuredData = await getEntityStructuredData({ type: "place", slug });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
-      <PublicNavbar />
+    <>
+      <StructuredData data={structuredData} />
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+        <PublicNavbar />
 
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Breadcrumb */}
         <nav className="text-xs text-slate-500 mb-6 flex items-center gap-1.5" aria-label="Breadcrumb">
           <Link href="/" className="hover:text-slate-900 transition">Home</Link>
@@ -182,9 +170,8 @@ export default async function PlaceDetailPage({ params }) {
         )}
       </main>
 
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} GaavConnect · Discover Local Businesses & Places
-      </footer>
+      <PublicFooter />
     </div>
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import OpenStreetMapPlaceAutocomplete from "@/components/openstreetmap-place-autocomplete";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 import { useEffect, useMemo, useState } from "react";
 
 const TYPES = [
@@ -172,7 +173,23 @@ export default function BusinessDirectory() {
         const response = await fetch(`/api/businesses?${params}`, { signal: controller.signal });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.message || "Unable to load local listings.");
-        if (active) setData({ items: result.items || [], pagination: result.pagination || null });
+        if (active) {
+          setData({ items: result.items || [], pagination: result.pagination || null });
+          if (query.trim() && typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("gaavconnect:analytics", {
+                detail: {
+                  eventType: "search",
+                  metadata: {
+                    searchQuery: query.trim(),
+                    resultsCount: (result.items || []).length,
+                    locationFilter: location.trim(),
+                  },
+                },
+              })
+            );
+          }
+        }
       } catch (err) {
         if (active && err.name !== "AbortError") setError(err.message || "Please try again.");
       } finally {
@@ -486,7 +503,7 @@ export default function BusinessDirectory() {
                 const fallbackGradient = GRADIENTS[index % GRADIENTS.length];
 
                 return (
-                  <article className="saas-business-card" key={item._id}>
+                  <article className={`saas-business-card ${item.isSponsored ? "is-sponsored-card" : ""}`} key={item._id}>
                     {/* Card Media Header */}
                     <Link
                       href={`/businesses/${item.slug}`}
@@ -523,7 +540,13 @@ export default function BusinessDirectory() {
                         </span>
 
                         <div className="card-badges-right">
-                          {item.isFeatured && (
+                          {item.isSponsored && (
+                            <span className="card-badge sponsored-badge" title="Promoted Sponsored Ad">
+                              <span className="sponsored-sparkle">✦</span>
+                              <span>{item.sponsoredBadge || "Sponsored"}</span>
+                            </span>
+                          )}
+                          {item.isFeatured && !item.isSponsored && (
                             <span className="card-badge featured-badge" title="Featured local business">
                               <DirectoryIcon name="star" size={12} />
                               <span>Featured</span>
@@ -544,10 +567,24 @@ export default function BusinessDirectory() {
 
                     {/* Card Content Body */}
                     <div className="saas-card-body">
+                      {item.isSponsored && (
+                        <div className="sponsored-card-header-bar">
+                          <span className="sponsored-platform-label">
+                            <span className="sponsored-sparkle">✦</span> {item.sponsoredBadge || "Sponsored"}
+                          </span>
+                          <span className="sponsored-promoted-pill">Promoted Ad</span>
+                        </div>
+                      )}
+
                       <div className="saas-card-type-row">
                         <span className="type-badge-pill">
                           {item.businessType?.replace(/_/g, " ") || "local business"}
                         </span>
+                        {item.priceRange && item.priceRange !== "not_applicable" && (
+                          <span className="type-badge-pill" style={{ color: "#047857", background: "#ecfdf5", borderColor: "#a7f3d0" }}>
+                            {item.priceRange === "budget" ? "₹ Budget" : item.priceRange === "moderate" ? "₹₹ Moderate" : item.priceRange === "premium" ? "₹₹₹ Premium" : "₹₹₹₹ Luxury"}
+                          </span>
+                        )}
                         {item.contact?.phone && (
                           <span className="quick-contact-pill" title="Phone verified">
                             <DirectoryIcon name="phone" size={12} />
@@ -560,11 +597,50 @@ export default function BusinessDirectory() {
                         <Link href={`/businesses/${item.slug}`}>{item.name}</Link>
                       </h3>
 
+                      {item.isSponsored && item.sponsoredTagline && (
+                        <div className="sponsored-ad-offer-banner">
+                          <span className="offer-badge-icon">🏷️ OFFER</span>
+                          <p className="offer-badge-text">{item.sponsoredTagline}</p>
+                        </div>
+                      )}
+
                       <p className="saas-card-description">
                         {item.tagline ||
                           item.description ||
                           "Discover services, verified timings, customer reviews, and directions."}
                       </p>
+
+                      {/* Sponsored direct quick actions */}
+                      {item.isSponsored && (item.contact?.phone || item.contact?.whatsapp) && (
+                        <div className="sponsored-quick-actions">
+                          {item.contact?.phone && (
+                            <a
+                              href={`tel:${item.contact.phone}`}
+                              className="sponsored-action-btn action-call"
+                              title="Call Business"
+                            >
+                              📞 Call
+                            </a>
+                          )}
+                          {item.contact?.whatsapp && (
+                            <a
+                              href={`https://wa.me/${item.contact.whatsapp.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="sponsored-action-btn action-wa"
+                              title="WhatsApp Business"
+                            >
+                              💬 WhatsApp
+                            </a>
+                          )}
+                          <Link
+                            href={`/businesses/${item.slug}`}
+                            className="sponsored-action-btn action-view"
+                          >
+                            Explore →
+                          </Link>
+                        </div>
+                      )}
 
                       {/* Card Footer with Location & Action */}
                       <div className="saas-card-footer">
@@ -642,19 +718,7 @@ export default function BusinessDirectory() {
       </section>
 
       {/* Directory Footer */}
-      <footer className="saas-directory-footer">
-        <div className="footer-inner">
-          <div className="footer-left">
-            <Link href="/" className="footer-brand">
-              GaavConnect
-            </Link>
-            <p>Empowering local businesses and regional communities with modern visibility.</p>
-          </div>
-          <div className="footer-right">
-            <span>© {new Date().getFullYear()} GaavConnect · Made for Nashik & Maharashtra</span>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

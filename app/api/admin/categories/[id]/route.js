@@ -192,31 +192,12 @@ export async function PATCH(request, { params }) {
             return apiError("Category not found.", 404);
         }
 
-        // PATCH can deactivate a category too, so enforce the same data
-        // integrity rules as DELETE before changing active -> inactive.
+        // When deactivating, cascade soft-deactivation to direct active children
         if (updates.status === "inactive" && category.status === "active") {
-            const activeChildren = await Category.exists({
-                parent: category._id,
-                status: "active",
-            });
-
-            if (activeChildren) {
-                return apiError(
-                    "Deactivate or reassign active child categories first.",
-                    409
-                );
-            }
-
-            const linkedBusiness = await Business.exists({
-                category: category._id,
-            });
-
-            if (linkedBusiness) {
-                return apiError(
-                    "This category is referenced by businesses. Reassign those businesses before deactivating it.",
-                    409
-                );
-            }
+            await Category.updateMany(
+                { parent: category._id, status: "active" },
+                { status: "inactive", updatedBy: auth.user.id }
+            );
         }
 
         if (updates.parent !== undefined || updates.status === "active") {
@@ -317,25 +298,27 @@ export async function DELETE(_request, { params }) {
             });
         }
 
-        // Do not deactivate a category while any business still references it.
-        // The public API only exposes businesses with active categories, so
-        // allowing this would make existing business pages disappear.
-        const linkedBusiness = await Business.exists({ category: category._id });
+        // Soft-deactivate any active child categories to preserve hierarchy consistency
+        await Category.updateMany(
+            { parent: category._id, status: "active" },
+            { status: "inactive", updatedBy: auth.user.id }
+        );
 
-        if (linkedBusiness) {
-            return apiError(
-                "This category is referenced by businesses. Reassign those businesses before deactivating it.",
-                409
-            );
-        }
+        const linkedBusinessCount = await Business.countDocuments({
+            category: category._id,
+        });
 
         category.status = "inactive";
         category.updatedBy = auth.user.id;
 
         await category.save();
 
+        const message = linkedBusinessCount > 0
+            ? `Category deactivated (${linkedBusinessCount} linked business${linkedBusinessCount === 1 ? "" : "es"} unlisted from public view until reactivated).`
+            : "Category deactivated successfully.";
+
         return apiSuccess({
-            message: "Category deactivated successfully.",
+            message,
             item: category.toObject(),
         });
     } catch (error) {

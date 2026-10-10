@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 
 function renderCategorySvg(iconName, size = 24) {
   const common = {
@@ -332,19 +333,7 @@ export default function CategoryBrowser({ categories = [], countMap = {} }) {
       </section>
 
       {/* Directory Footer */}
-      <footer className="saas-directory-footer">
-        <div className="footer-inner">
-          <div className="footer-left">
-            <Link href="/" className="footer-brand">
-              GaavConnect
-            </Link>
-            <p>Empowering local businesses and regional communities with modern visibility.</p>
-          </div>
-          <div className="footer-right">
-            <span>© {new Date().getFullYear()} GaavConnect · Made for Nashik & Maharashtra</span>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

@@ -81,6 +81,11 @@ const submissionSchema = z.object({
     adminNotes: z.string().trim().max(3000).optional().default(""),
 }).strict();
 
+const assignTargetSchema = z.object({
+    entityType: z.enum(["location", "event", "place", "guide", "business"]),
+    entityId: z.string().regex(/^[a-f\d]{24}$/i),
+}).strict();
+
 const mediaSchema = z.object({
     url: z.string().url().max(2048).refine((value) => /^https?:\/\//i.test(value)),
     publicId: z.string().trim().min(1).max(300),
@@ -91,12 +96,77 @@ const mediaSchema = z.object({
     bytes: z.number().int().min(0).max(5242880).optional().default(0),
     width: z.number().int().min(0).nullable().optional(),
     height: z.number().int().min(0).nullable().optional(),
+    assignTo: assignTargetSchema.optional(),
 }).strict();
 
 const mediaUpdateSchema = z.object({
     alt: z.string().trim().max(200).optional(),
     caption: z.string().trim().max(500).optional(),
+    assignTo: assignTargetSchema.optional(),
+    unassignFrom: assignTargetSchema.optional(),
 }).strict();
+
+async function applyMediaAssignment(media, assignTo, userId) {
+    if (!assignTo) return null;
+    const { entityType, entityId } = assignTo;
+    const coverImagePayload = {
+        url: media.url,
+        publicId: media.publicId,
+        alt: media.alt || "",
+    };
+
+    if (entityType === "location") {
+        return await Location.findByIdAndUpdate(
+            entityId,
+            { $set: { coverImage: coverImagePayload, updatedBy: userId } },
+            { new: true }
+        );
+    }
+    if (["event", "place", "guide"].includes(entityType)) {
+        return await ContentItem.findByIdAndUpdate(
+            entityId,
+            { $set: { coverImage: coverImagePayload, updatedBy: userId } },
+            { new: true }
+        );
+    }
+    if (entityType === "business") {
+        return await Business.findByIdAndUpdate(
+            entityId,
+            { $set: { coverImage: coverImagePayload } },
+            { new: true }
+        );
+    }
+    return null;
+}
+
+async function removeMediaAssignment(media, unassignFrom, userId) {
+    if (!unassignFrom) return null;
+    const { entityType, entityId } = unassignFrom;
+    const blankCover = { url: "", publicId: "", alt: "" };
+
+    if (entityType === "location") {
+        return await Location.findByIdAndUpdate(
+            entityId,
+            { $set: { coverImage: blankCover, updatedBy: userId } },
+            { new: true }
+        );
+    }
+    if (["event", "place", "guide"].includes(entityType)) {
+        return await ContentItem.findByIdAndUpdate(
+            entityId,
+            { $set: { coverImage: blankCover, updatedBy: userId } },
+            { new: true }
+        );
+    }
+    if (entityType === "business") {
+        return await Business.findByIdAndUpdate(
+            entityId,
+            { $set: { coverImage: blankCover } },
+            { new: true }
+        );
+    }
+    return null;
+}
 
 const settingsSchema = z.object({
     siteName: z.string().trim().min(1).max(120),
@@ -255,8 +325,76 @@ export async function GET(request, context) {
             resource.model.countDocuments(filter),
         ]);
 
+        let enrichedItems = items;
+        if (type === "media" && items.length > 0) {
+            const publicIds = items.map((m) => m.publicId).filter(Boolean);
+            const urls = items.map((m) => m.url).filter(Boolean);
+
+            const [locations, contentItems, businesses] = await Promise.all([
+                Location.find({
+                    $or: [
+                        { "coverImage.publicId": { $in: publicIds } },
+                        { "coverImage.url": { $in: urls } },
+                    ],
+                }).select("name slug type coverImage").lean().exec(),
+                ContentItem.find({
+                    $or: [
+                        { "coverImage.publicId": { $in: publicIds } },
+                        { "coverImage.url": { $in: urls } },
+                    ],
+                }).select("title slug kind coverImage").lean().exec(),
+                Business.find({
+                    $or: [
+                        { "coverImage.publicId": { $in: publicIds } },
+                        { "coverImage.url": { $in: urls } },
+                        { "logo.publicId": { $in: publicIds } },
+                        { "logo.url": { $in: urls } },
+                    ],
+                }).select("name slug coverImage logo").lean().exec(),
+            ]);
+
+            enrichedItems = items.map((item) => {
+                const usages = [];
+                for (const loc of locations) {
+                    if (loc.coverImage?.publicId === item.publicId || (item.url && loc.coverImage?.url === item.url)) {
+                        usages.push({
+                            entityType: "location",
+                            name: loc.name,
+                            slug: loc.slug,
+                            id: loc._id.toString(),
+                            publicUrl: `/locations/${loc.slug}`,
+                        });
+                    }
+                }
+                for (const ci of contentItems) {
+                    if (ci.coverImage?.publicId === item.publicId || (item.url && ci.coverImage?.url === item.url)) {
+                        usages.push({
+                            entityType: ci.kind,
+                            name: ci.title,
+                            slug: ci.slug,
+                            id: ci._id.toString(),
+                            publicUrl: `/${ci.kind === "place" ? "places" : ci.kind === "guide" ? "guides" : "events"}/${ci.slug}`,
+                        });
+                    }
+                }
+                for (const biz of businesses) {
+                    if (biz.coverImage?.publicId === item.publicId || (item.url && biz.coverImage?.url === item.url) ||
+                        biz.logo?.publicId === item.publicId || (item.url && biz.logo?.url === item.url)) {
+                        usages.push({
+                            entityType: "business",
+                            name: biz.name,
+                            slug: biz.slug,
+                            id: biz._id.toString(),
+                            publicUrl: `/businesses/${biz.slug}`,
+                        });
+                    }
+                }
+                return { ...item, usages };
+            });
+        }
+
         return apiSuccess({
-            items,
+            items: enrichedItems,
             total,
             page,
             limit,
@@ -309,7 +447,13 @@ export async function POST(request, context) {
         } else if (type === "media") {
             const parsed = mediaSchema.safeParse(parsedBody.body);
             if (!parsed.success) return apiError("Media data is invalid.", 400, parsed.error.issues);
-            data = { ...parsed.data, uploadedBy: auth.user.id };
+            const { assignTo, ...mediaFields } = parsed.data;
+            data = { ...mediaFields, uploadedBy: auth.user.id };
+            const item = await resource.model.create(data);
+            if (assignTo) {
+                await applyMediaAssignment(item, assignTo, auth.user.id);
+            }
+            return apiSuccess({ item }, 201);
         } else if (type === "seo") {
             const parsed = settingsSchema.safeParse(parsedBody.body);
             if (!parsed.success) return apiError("SEO settings are invalid.", 400, parsed.error.issues);
@@ -400,9 +544,20 @@ export async function PATCH(request, context) {
             const parsed = mediaUpdateSchema.safeParse(body.data);
             if (!parsed.success) return apiError("Media update is invalid.", 400, parsed.error.issues);
             if (Object.keys(parsed.data).length === 0) {
-                return apiError("Provide alt text or a caption to update.", 400);
+                return apiError("Provide alt text, caption, or an assignment change to update.", 400);
             }
-            updates = parsed.data;
+            const { assignTo, unassignFrom, ...mediaFields } = parsed.data;
+            updates = mediaFields;
+
+            const existingMedia = await resource.model.findById(body.id).lean().exec();
+            if (!existingMedia) return apiError("Media record not found.", 404);
+
+            if (assignTo) {
+                await applyMediaAssignment(existingMedia, assignTo, auth.user.id);
+            }
+            if (unassignFrom) {
+                await removeMediaAssignment(existingMedia, unassignFrom, auth.user.id);
+            }
         } else if (type === "seo-templates") {
             const parsed = templateSchema.partial().strict().safeParse(body.data);
             if (!parsed.success) return apiError("SEO template is invalid.", 400, parsed.error.issues);

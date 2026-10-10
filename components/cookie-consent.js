@@ -42,7 +42,10 @@ export default function CookieConsent() {
 
   function save(next) {
     const safe = { ...DEFAULTS, ...next, necessary: true, updatedAt: new Date().toISOString() };
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(safe)); } catch {}
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
+      window.dispatchEvent(new CustomEvent("gaavconnect:consent-updated", { detail: safe }));
+    } catch {}
     setPreferences(safe);
     setVisible(false);
     setCustomizing(false);

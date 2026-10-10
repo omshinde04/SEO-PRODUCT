@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import ContentItem from "@/models/ContentItem";
 import Location from "@/models/Location";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 import { getStaticPageMetadata } from "@/lib/seo/static-pages";
 
 export const dynamic = "force-dynamic";
@@ -193,9 +194,7 @@ export default async function GuidesPage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} GaavConnect · Discover Local Businesses & Places
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

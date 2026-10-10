@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 
 const BUSINESS_TYPES = [
   ["business", "General Local Business"],
@@ -16,6 +17,26 @@ const BUSINESS_TYPES = [
   ["guide", "Local Guide & Assistance"],
   ["event_venue", "Banquet Hall & Event Venue"],
   ["other", "Other Local Service"],
+];
+
+const PRICE_RANGES = [
+  ["not_applicable", "Not Applicable / General"],
+  ["budget", "Budget friendly (₹)"],
+  ["moderate", "Moderate (₹₹)"],
+  ["premium", "Premium (₹₹₹)"],
+  ["luxury", "Luxury (₹₹₹₹)"],
+];
+
+const COMMON_AMENITIES = [
+  "Car & Bike Parking",
+  "Free Wi-Fi",
+  "Air Conditioned (AC)",
+  "Family Dining Seating",
+  "UPI / Digital Payments (GPay/PhonePe)",
+  "Card Payment Accepted",
+  "Pure Veg Options",
+  "Parcel / Takeaway Available",
+  "Restrooms / Washroom",
 ];
 
 const initial = {
@@ -34,7 +55,13 @@ const initial = {
   sameAsPhone: true,
   email: "",
   website: "",
+  instagram: "",
+  priceRange: "not_applicable",
+  openingHours: "",
+  coverImageUrl: "",
+  description: "",
   services: "",
+  amenities: [],
   message: "",
 };
 
@@ -45,6 +72,8 @@ export default function BusinessSubmissionForm() {
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -106,6 +135,70 @@ export default function BusinessSubmissionForm() {
     });
   }
 
+  function toggleAmenity(amenity) {
+    setForm((prev) => {
+      const current = prev.amenities || [];
+      const next = current.includes(amenity)
+        ? current.filter((a) => a !== amenity)
+        : [...current, amenity];
+      return { ...prev, amenities: next };
+    });
+  }
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+    if (!allowed.includes(file.type)) {
+      setPhotoError("Choose a JPG, PNG, or WebP photo.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("Photo must be 5 MB or smaller.");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setPhotoError("");
+
+    try {
+      const sigRes = await fetch("/api/business-submissions/upload-signature", {
+        method: "POST",
+      });
+      const sigData = await sigRes.json();
+      if (!sigRes.ok || !sigData.success) {
+        throw new Error(sigData.message || "Could not prepare photo upload.");
+      }
+
+      const config = sigData.upload;
+      const body = new FormData();
+      body.append("file", file);
+      body.append("api_key", config.apiKey);
+      body.append("timestamp", String(config.timestamp));
+      body.append("signature", config.signature);
+      body.append("folder", config.folder);
+      body.append("public_id", config.publicId);
+      body.append("upload_preset", config.uploadPreset);
+
+      const upRes = await fetch(config.uploadUrl, {
+        method: "POST",
+        body,
+      });
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData.secure_url) {
+        throw new Error(upData.error?.message || "Cloudinary image upload failed.");
+      }
+
+      setForm((prev) => ({ ...prev, coverImageUrl: upData.secure_url }));
+    } catch (err) {
+      setPhotoError(err.message || "Upload failed. You can also paste an image URL directly.");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  }
+
   async function submit(e) {
     e.preventDefault();
     setStatus("sending");
@@ -117,6 +210,8 @@ export default function BusinessSubmissionForm() {
           .map((s) => s.trim())
           .filter(Boolean)
       : [];
+
+    const finalDescription = (form.description || form.message || "").trim();
 
     const payload = {
       businessName: form.businessName.trim(),
@@ -137,8 +232,14 @@ export default function BusinessSubmissionForm() {
         formatted: [form.addressLine.trim(), form.area.trim(), form.locationName].filter(Boolean).join(", "),
       },
       services: servicesList,
+      amenities: form.amenities,
       website: form.website.trim(),
-      message: form.message.trim(),
+      instagram: form.instagram.trim(),
+      priceRange: form.priceRange,
+      openingHours: form.openingHours.trim(),
+      coverImageUrl: form.coverImageUrl.trim(),
+      description: finalDescription,
+      message: form.message.trim() || finalDescription,
     };
 
     try {
@@ -218,8 +319,8 @@ export default function BusinessSubmissionForm() {
             <div className="form-feedback success" role="status">
               <strong>🎉 Application Received Successfully!</strong>
               <span>
-                Your business details are now in our admin review queue. Our verification team will review your contact
-                details and publish your live directory profile shortly.
+                Your business details are now in our admin review queue. Our verification team will review your details
+                and publish your live directory profile shortly.
               </span>
             </div>
           )}
@@ -381,43 +482,178 @@ export default function BusinessSubmissionForm() {
               </span>
             </label>
 
-            <label className="form-full">
-              Website or Social Page (Optional)
+            {/* 3. Online Profiles & Timings */}
+            <label>
+              Instagram Profile / Handle
+              <input
+                name="instagram"
+                value={form.instagram}
+                onChange={update}
+                maxLength="2048"
+                placeholder="e.g. @hotelkalinga or instagram.com/hotelkalinga"
+              />
+            </label>
+
+            <label>
+              Website or Maps Link (Optional)
               <input
                 type="url"
                 name="website"
                 value={form.website}
                 onChange={update}
                 maxLength="2048"
-                placeholder="https://yourwebsite.com or Instagram/Google Maps link"
+                placeholder="https://yourwebsite.com or Google Maps link"
               />
             </label>
 
+            <label>
+              Price Range
+              <select name="priceRange" value={form.priceRange} onChange={update}>
+                {PRICE_RANGES.map(([val, label]) => (
+                  <option key={val} value={val}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Operating Hours & Days Open
+              <input
+                name="openingHours"
+                value={form.openingHours}
+                onChange={update}
+                maxLength="500"
+                placeholder="e.g. Mon-Sun: 8:00 AM - 11:00 PM, or Closed on Tuesdays"
+              />
+            </label>
+
+            {/* 4. Business Photo / Cover Image */}
+            <div className="form-full" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <span style={{ color: "#516250", fontSize: "10px", fontWeight: 700 }}>
+                Storefront Photo / Cover Image (Optional)
+              </span>
+              
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingPhoto}
+                  onChange={handlePhotoUpload}
+                  style={{ maxWidth: "260px", padding: "8px" }}
+                />
+                <span style={{ fontSize: "11px", color: "#858d83" }}>or paste photo link:</span>
+                <input
+                  type="url"
+                  name="coverImageUrl"
+                  value={form.coverImageUrl}
+                  onChange={update}
+                  placeholder="https://images.unsplash.com/... or image URL"
+                  style={{ flex: 1, minWidth: "200px" }}
+                />
+              </div>
+
+              {uploadingPhoto && (
+                <span style={{ fontSize: "11px", color: "#2563eb", fontWeight: 500 }}>
+                  Uploading your photo to directory storage…
+                </span>
+              )}
+              {photoError && (
+                <span style={{ fontSize: "11px", color: "#e11d48", fontWeight: 500 }}>
+                  {photoError}
+                </span>
+              )}
+              {form.coverImageUrl && (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
+                  <img
+                    src={form.coverImageUrl}
+                    alt="Uploaded storefront preview"
+                    style={{ height: "48px", width: "72px", objectFit: "cover", borderRadius: "4px", border: "1px solid #e2e7dd" }}
+                  />
+                  <span style={{ fontSize: "11px", color: "#294432", fontWeight: 500 }}>
+                    ✓ Photo attached successfully
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, coverImageUrl: "" }))}
+                    style={{ background: "none", border: "none", color: "#e11d48", fontSize: "11px", cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Amenities / Highlights */}
+            <div className="form-full" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <span style={{ color: "#516250", fontSize: "10px", fontWeight: 700 }}>
+                Key Amenities & Facilities (Select all that apply)
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {COMMON_AMENITIES.map((amenity) => {
+                  const isChecked = form.amenities.includes(amenity);
+                  return (
+                    <button
+                      key={amenity}
+                      type="button"
+                      onClick={() => toggleAmenity(amenity)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        border: isChecked ? "1px solid #33593b" : "1px solid #dcdfd8",
+                        background: isChecked ? "#e8efe6" : "#fdfdfa",
+                        color: isChecked ? "#244229" : "#637162",
+                        fontSize: "11px",
+                        fontWeight: isChecked ? 600 : 400,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {isChecked ? "✓ " : "+ "}
+                      {amenity}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <label className="form-full">
-              Key Services & Facilities (Comma separated)
+              Key Services, Dishes or Specialties (Comma separated)
               <input
                 name="services"
                 value={form.services}
                 onChange={update}
-                placeholder="e.g. Family Seating, AC Hall, Home Delivery, Parking, Card Payment"
+                placeholder="e.g. Authentic Chulivarch Mutton & Chicken Thali, Maharashtrian Bhakri, 24x7 Breakdown Towing, Emergency Pharmacy"
               />
             </label>
 
             <label className="form-full">
-              Business Description & Operating Hours *
+              Business Description & Overview *
               <textarea
-                name="message"
-                value={form.message}
+                name="description"
+                value={form.description}
                 onChange={update}
                 maxLength="5000"
                 rows="4"
                 required
-                placeholder="Describe your specialties, opening hours (e.g. Mon-Sun 8 AM to 11 PM), signature items, history, or what makes you trusted..."
+                placeholder="Describe your specialties, history, unique offerings, signature dishes, why local customers and highway travelers trust you..."
+              />
+            </label>
+
+            <label className="form-full">
+              Additional Notes for Editorial Team (Optional)
+              <textarea
+                name="message"
+                value={form.message}
+                onChange={update}
+                maxLength="2000"
+                rows="2"
+                placeholder="Any special notes, preferred verification time, or landmark directions..."
               />
             </label>
           </div>
 
-          <button className="submission-submit" disabled={status === "sending"} type="submit">
+          <button className="submission-submit" disabled={status === "sending" || uploadingPhoto} type="submit">
             {status === "sending" ? "Submitting Business Details…" : "Send Listing Request ↗"}
           </button>
 
@@ -427,11 +663,7 @@ export default function BusinessSubmissionForm() {
         </form>
       </section>
 
-      <footer className="directory-footer">
-        <Link href="/">GaavConnect</Link>
-        <span>Discover trusted places and rural services closer to home.</span>
-        <Link href="/businesses">Explore all listings →</Link>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

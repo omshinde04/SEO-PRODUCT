@@ -65,16 +65,22 @@ export default async function PublicEntityPage({ params }) {
             select: "name slug type address coverImage",
             match: { status: "active" },
           })
-          .sort({ publishedAt: -1, name: 1 })
+          .sort({ isSponsored: -1, sponsoredPriority: -1, isFeatured: -1, publishedAt: -1, name: 1 })
           .limit(12)
           .lean()
           .exec(),
         Business.countDocuments(businessFilter),
       ]);
 
-      const visibleBusinesses = businesses.filter(
-        (b) => b.category && b.location
-      );
+      const now = new Date();
+      const visibleBusinesses = businesses
+        .filter((b) => b.category && b.location)
+        .map((b) => {
+          if (b.isSponsored && b.sponsoredUntil && new Date(b.sponsoredUntil) < now) {
+            return { ...b, isSponsored: false };
+          }
+          return b;
+        });
 
       initialData = JSON.parse(
         JSON.stringify({

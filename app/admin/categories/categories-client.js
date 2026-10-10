@@ -208,7 +208,7 @@ export default function CategoriesClient() {
 
     async function toggleStatus(item) {
         const activating = item.status === "inactive";
-        if (!activating && !window.confirm("Deactivate this category? Categories referenced by businesses or active child categories cannot be deactivated.")) {
+        if (!activating && !window.confirm(`Deactivate "${item.name}"? This category and its listed places will be unlisted from the public website until reactivated.`)) {
             return;
         }
 

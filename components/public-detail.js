@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 
 const FALLBACK_GRADIENTS = [
   "linear-gradient(135deg, #edf5eb 0%, #dceadc 100%)",
@@ -15,6 +16,33 @@ const FALLBACK_GRADIENTS = [
 
 function imageOf(item) {
   return item?.coverImage?.url || item?.images?.[0]?.url || item?.logo?.url || "";
+}
+
+const WEEK_DAYS = [
+  ["monday", "Monday"],
+  ["tuesday", "Tuesday"],
+  ["wednesday", "Wednesday"],
+  ["thursday", "Thursday"],
+  ["friday", "Friday"],
+  ["saturday", "Saturday"],
+  ["sunday", "Sunday"],
+];
+
+function getTodayDayKey() {
+  const map = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  return map[new Date().getDay()];
+}
+
+function hasWeeklyHours(weekly) {
+  if (!weekly || typeof weekly !== "object") return false;
+  return WEEK_DAYS.some(([day]) => Array.isArray(weekly[day]) && weekly[day].length > 0);
+}
+
+function hasSocialLinks(links) {
+  if (!links || typeof links !== "object") return false;
+  return Boolean(
+    links.instagram || links.facebook || links.youtube || links.linkedin || links.x || links.tiktok
+  );
 }
 
 function renderCategorySvg(iconName, size = 22) {
@@ -167,7 +195,7 @@ function Card({ item }) {
     FALLBACK_GRADIENTS[Math.abs(item.name?.charCodeAt(0) || 0) % FALLBACK_GRADIENTS.length];
 
   return (
-    <article className="saas-business-card">
+    <article className={`saas-business-card ${item.isSponsored ? "is-sponsored-card" : ""}`}>
       <Link href={`/businesses/${item.slug}`} className="saas-card-media" tabIndex={-1}>
         {image ? (
           <img
@@ -202,7 +230,13 @@ function Card({ item }) {
           </span>
 
           <div className="card-badges-right">
-            {item.isFeatured && (
+            {item.isSponsored && (
+              <span className="card-badge sponsored-badge" title="Promoted Sponsored Ad">
+                <span className="sponsored-sparkle">✦</span>
+                <span>{item.sponsoredBadge || "Sponsored"}</span>
+              </span>
+            )}
+            {item.isFeatured && !item.isSponsored && (
               <span className="card-badge featured-badge" title="Featured local business">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -225,6 +259,15 @@ function Card({ item }) {
       </Link>
 
       <div className="saas-card-body">
+        {item.isSponsored && (
+          <div className="sponsored-card-header-bar">
+            <span className="sponsored-platform-label">
+              <span className="sponsored-sparkle">✦</span> {item.sponsoredBadge || "Sponsored"}
+            </span>
+            <span className="sponsored-promoted-pill">Promoted Ad</span>
+          </div>
+        )}
+
         <div className="saas-card-type-row">
           <span className="type-badge-pill">
             {item.businessType?.replace(/_/g, " ") || "local business"}
@@ -243,11 +286,50 @@ function Card({ item }) {
           <Link href={`/businesses/${item.slug}`}>{item.name}</Link>
         </h3>
 
+        {item.isSponsored && item.sponsoredTagline && (
+          <div className="sponsored-ad-offer-banner">
+            <span className="offer-badge-icon">🏷️ OFFER</span>
+            <p className="offer-badge-text">{item.sponsoredTagline}</p>
+          </div>
+        )}
+
         <p className="saas-card-description">
           {item.tagline ||
             item.description ||
             "Discover verified services, local contact, and directions."}
         </p>
+
+        {/* Sponsored direct quick actions */}
+        {item.isSponsored && (item.contact?.phone || item.contact?.whatsapp) && (
+          <div className="sponsored-quick-actions">
+            {item.contact?.phone && (
+              <a
+                href={`tel:${item.contact.phone}`}
+                className="sponsored-action-btn action-call"
+                title="Call Business"
+              >
+                📞 Call
+              </a>
+            )}
+            {item.contact?.whatsapp && (
+              <a
+                href={`https://wa.me/${item.contact.whatsapp.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sponsored-action-btn action-wa"
+                title="WhatsApp Business"
+              >
+                💬 WhatsApp
+              </a>
+            )}
+            <Link
+              href={`/businesses/${item.slug}`}
+              className="sponsored-action-btn action-view"
+            >
+              Explore →
+            </Link>
+          </div>
+        )}
 
         <div className="saas-card-footer">
           <span className="saas-location-tag" title={place || "Local area"}>
@@ -476,6 +558,12 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                       : (item.type || "LOCAL AREA").toUpperCase()}
                   </span>
                 </span>
+                {isBusiness && item.isSponsored && (
+                  <span className="sponsored-detail-badge">
+                    <span className="sponsored-sparkle">✦</span>
+                    <span>{item.sponsoredBadge || "Sponsored Business"}</span>
+                  </span>
+                )}
                 {parent && isCategory && (
                   <Link href={`/categories/${parent.slug}`} className="saas-parent-pill">
                     <span>Part of <strong>{parent.name}</strong></span>
@@ -486,6 +574,32 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                   </Link>
                 )}
               </div>
+
+              {isBusiness && item.logo?.url && (
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
+                  <img
+                    src={item.logo.url}
+                    alt={item.logo.alt || `${title} logo`}
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "14px",
+                      objectFit: "cover",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
+                      background: "#fff",
+                    }}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#2f5236", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                      Verified Business
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#6b7280" }}>
+                      GaavConnect Directory
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <h1 className="saas-hero-title">{title}</h1>
               {item.tagline && <p className="detail-tagline">{item.tagline}</p>}
@@ -518,13 +632,42 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                 )}
                 {isBusiness && item.category?.name && (
                   <Link href={`/categories/${item.category.slug}`} className="saas-chip link-chip">
-                    <span>📂 {item.category.name}</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                    </svg>
+                    <span>{item.category.name}</span>
                   </Link>
                 )}
                 {isBusiness && item.location?.name && (
                   <Link href={`/locations/${item.location.slug}`} className="saas-chip link-chip">
-                    <span>⌖ {item.location.name}</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                      <path d="M2 12h20" />
+                    </svg>
+                    <span>{item.location.name}</span>
                   </Link>
+                )}
+                {isBusiness && item.priceRange && item.priceRange !== "not_applicable" && (
+                  <span className="saas-chip" style={{ fontWeight: 600 }}>
+                    <span style={{ color: "#047857" }}>
+                      {item.priceRange === "budget" ? "₹ Budget" : item.priceRange === "moderate" ? "₹₹ Moderate" : item.priceRange === "premium" ? "₹₹₹ Premium" : "₹₹₹₹ Luxury"}
+                    </span>
+                  </span>
+                )}
+                {isBusiness && item.establishedYear && (
+                  <span className="saas-chip">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span>Est. {item.establishedYear}</span>
+                  </span>
+                )}
+                {isBusiness && item.businessType && (
+                  <span className="saas-chip" style={{ textTransform: "capitalize" }}>
+                    <span>{item.businessType.replace(/_/g, " ")}</span>
+                  </span>
                 )}
                 <span className="saas-chip district-chip">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -571,6 +714,34 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                 </div>
               )}
 
+              {isLocation && (
+                <div className="saas-hero-actions">
+                  {totalBusinesses > 0 ? (
+                    <a href="#places-section" className="saas-btn-primary">
+                      <span>Browse {totalBusinesses} Places</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 5v14" />
+                        <path d="m19 12-7 7-7-7" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <Link href={`/add-business?location=${encodeURIComponent(slug)}`} className="saas-btn-primary">
+                      <span>+ List a business in {title}</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                      </svg>
+                    </Link>
+                  )}
+                  <Link href="/businesses" className="saas-btn-secondary">
+                    <span>Explore all businesses</span>
+                  </Link>
+                  <Link href="/locations" className="saas-btn-subtle">
+                    <span>← All locations</span>
+                  </Link>
+                </div>
+              )}
+
               {isBusiness && (
                 <div className="detail-actions">
                   {item.contact?.phone && (
@@ -578,7 +749,15 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                       className="detail-primary"
                       href={`tel:${item.contact.phone.replace(/[^+\d]/g, "")}`}
                     >
-                      Call business ↗
+                      Call: {item.contact.phone} ↗
+                    </a>
+                  )}
+                  {item.contact?.alternatePhone && (
+                    <a
+                      className="detail-secondary"
+                      href={`tel:${item.contact.alternatePhone.replace(/[^+\d]/g, "")}`}
+                    >
+                      Alt: {item.contact.alternatePhone} ↗
                     </a>
                   )}
                   {item.contact?.whatsapp && (
@@ -589,6 +768,17 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                       href={`https://wa.me/${item.contact.whatsapp.replace(/\D/g, "")}`}
                     >
                       WhatsApp ↗
+                    </a>
+                  )}
+                  {item.socialLinks?.instagram && (
+                    <a
+                      className="detail-secondary"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={item.socialLinks.instagram.startsWith("http") ? item.socialLinks.instagram : `https://instagram.com/${item.socialLinks.instagram.replace(/^@/, "")}`}
+                      style={{ background: "#fdf2f8", color: "#be185d", borderColor: "#fbcfe8" }}
+                    >
+                      Instagram ↗
                     </a>
                   )}
                   {item.contact?.website && (
@@ -653,14 +843,26 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
 
           {isBusiness ? (
             <>
+              {item.isSponsored && item.sponsoredTagline && (
+                <div className="sponsored-detail-offer-box">
+                  <div className="sponsored-offer-header">
+                    <span className="sponsored-offer-tag">✨ SPECIAL SPONSORED OFFER</span>
+                    <span className="sponsored-verified-pill">Verified Promotion</span>
+                  </div>
+                  <p className="sponsored-offer-text">{item.sponsoredTagline}</p>
+                </div>
+              )}
+
               <section className="detail-content-grid">
                 <article className="detail-panel">
                   <span className="eyebrow">A LITTLE MORE ABOUT THEM</span>
                   <h2>Good to know</h2>
-                  <p>{description}</p>
+                  <p style={{ whiteSpace: "pre-wrap" }}>{description}</p>
+
+                  {/* Services & Specialties */}
                   {item.services?.length > 0 && (
-                    <>
-                      <h3>Services</h3>
+                    <div style={{ marginTop: "24px" }}>
+                      <h3>Services & Specialties</h3>
                       <div className="detail-tags">
                         {item.services.map((s, i) => (
                           <span key={i}>
@@ -668,11 +870,82 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                           </span>
                         ))}
                       </div>
-                    </>
+                    </div>
                   )}
+
+                  {/* Amenities & Facilities */}
+                  {item.amenities?.length > 0 && (
+                    <div style={{ marginTop: "24px" }}>
+                      <h3>Amenities & Facilities</h3>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px" }}>
+                        {item.amenities.map((a, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "6px 12px",
+                              borderRadius: "20px",
+                              background: "#edf5eb",
+                              border: "1px solid #d4e5d1",
+                              color: "#284b2e",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span style={{ color: "#22c55e" }}>✓</span>
+                            <span>{a}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Accepted Payment Methods & Languages */}
+                  {(item.paymentMethods?.length > 0 || item.languages?.length > 0) && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginTop: "24px" }}>
+                      {item.paymentMethods?.length > 0 && (
+                        <div>
+                          <h4 style={{ fontSize: "12px", fontWeight: 700, color: "#374151", marginBottom: "8px" }}>Payment Modes</h4>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                            {item.paymentMethods.map((pm, i) => (
+                              <span key={i} style={{ padding: "4px 10px", background: "#f3f4f6", borderRadius: "6px", fontSize: "11px", color: "#374151" }}>
+                                💳 {pm}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {item.languages?.length > 0 && (
+                        <div>
+                          <h4 style={{ fontSize: "12px", fontWeight: 700, color: "#374151", marginBottom: "8px" }}>Languages Spoken</h4>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                            {item.languages.map((l, i) => (
+                              <span key={i} style={{ padding: "4px 10px", background: "#f3f4f6", borderRadius: "6px", fontSize: "11px", color: "#374151" }}>
+                                🗣️ {l}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Service Areas */}
+                  {item.serviceAreas?.length > 0 && (
+                    <div style={{ marginTop: "24px" }}>
+                      <h3>Service Coverage Areas</h3>
+                      <p style={{ color: "#4b5563", fontSize: "13px", marginTop: "4px" }}>
+                        Serving customers across {item.serviceAreas.join(", ")}.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Physical Address */}
                   {item.address && (
-                    <>
-                      <h3>Find them</h3>
+                    <div style={{ marginTop: "24px" }}>
+                      <h3>Physical Location</h3>
                       <p>
                         {[
                           item.address?.line1,
@@ -685,32 +958,160 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                           .filter(Boolean)
                           .join(", ")}
                       </p>
-                    </>
+                    </div>
                   )}
-                  {item.openingHours?.notes && (
-                    <>
-                      <h3>Opening hours</h3>
-                      <p>{item.openingHours.notes}</p>
-                    </>
+
+                  {/* Operating Hours Timetable */}
+                  {(hasWeeklyHours(item.openingHours?.weekly) || item.openingHours?.notes) && (
+                    <div style={{ marginTop: "28px", borderTop: "1px solid #e5e7eb", paddingTop: "20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                        <h3 style={{ margin: 0 }}>Operating Hours</h3>
+                        <span style={{ fontSize: "11px", color: "#6b7280" }}>{item.openingHours?.timezone || "Asia/Kolkata"}</span>
+                      </div>
+
+                      {hasWeeklyHours(item.openingHours?.weekly) && (
+                        <div style={{ borderRadius: "10px", border: "1px solid #e5e7eb", overflow: "hidden", background: "#fafafa" }}>
+                          {WEEK_DAYS.map(([dayKey, dayLabel]) => {
+                            const periods = item.openingHours?.weekly?.[dayKey] || [];
+                            const isToday = getTodayDayKey() === dayKey;
+                            const hoursText = periods.length > 0
+                              ? periods.map((p) => `${p.open} - ${p.close}`).join(", ")
+                              : "Closed";
+                            return (
+                              <div
+                                key={dayKey}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  padding: "9px 14px",
+                                  borderBottom: "1px solid #f3f4f6",
+                                  background: isToday ? "#edf7ed" : "transparent",
+                                  fontWeight: isToday ? 600 : 400,
+                                }}
+                              >
+                                <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: isToday ? "#1b4322" : "#374151" }}>
+                                  {isToday && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#22c55e" }} />}
+                                  {dayLabel} {isToday && "(Today)"}
+                                </span>
+                                <span style={{ fontSize: "12px", color: hoursText === "Closed" ? "#9ca3af" : isToday ? "#1b4322" : "#111827" }}>
+                                  {hoursText}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {item.openingHours?.notes && (
+                        <p style={{ marginTop: "10px", fontSize: "12px", color: "#6b7280", fontStyle: "italic" }}>
+                          ℹ️ {item.openingHours.notes}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Social Profiles */}
+                  {hasSocialLinks(item.socialLinks) && (
+                    <div style={{ marginTop: "28px", borderTop: "1px solid #e5e7eb", paddingTop: "20px" }}>
+                      <h3 style={{ marginBottom: "12px" }}>Follow & Connect</h3>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                        {item.socialLinks?.instagram && (
+                          <a
+                            href={item.socialLinks.instagram.startsWith("http") ? item.socialLinks.instagram : `https://instagram.com/${item.socialLinks.instagram.replace(/^@/, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", background: "#fdf2f8", border: "1px solid #fbcfe8", color: "#be185d", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+                          >
+                            <span>📸 Instagram</span>
+                          </a>
+                        )}
+                        {item.socialLinks?.facebook && (
+                          <a
+                            href={item.socialLinks.facebook}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+                          >
+                            <span>📘 Facebook</span>
+                          </a>
+                        )}
+                        {item.socialLinks?.youtube && (
+                          <a
+                            href={item.socialLinks.youtube}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+                          >
+                            <span>▶️ YouTube</span>
+                          </a>
+                        )}
+                        {item.socialLinks?.x && (
+                          <a
+                            href={item.socialLinks.x}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#111827", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+                          >
+                            <span>𝕏 Twitter</span>
+                          </a>
+                        )}
+                        {item.socialLinks?.linkedin && (
+                          <a
+                            href={item.socialLinks.linkedin}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", background: "#f0fdfa", border: "1px solid #ccfbf1", color: "#0f766e", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+                          >
+                            <span>💼 LinkedIn</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </article>
+
                 <aside className="detail-panel detail-contact">
                   <span className="eyebrow">MAKE A CONNECTION</span>
                   <h2>Ready to reach out?</h2>
                   <p>Contact the business directly to confirm services, availability and details.</p>
+                  {item.contact?.phone && (
+                    <a href={`tel:${item.contact.phone.replace(/[^+\d]/g, "")}`} style={{ fontWeight: 600 }}>
+                      ☎ Call: {item.contact.phone}
+                    </a>
+                  )}
+                  {item.contact?.alternatePhone && (
+                    <a href={`tel:${item.contact.alternatePhone.replace(/[^+\d]/g, "")}`}>
+                      📞 Alt: {item.contact.alternatePhone}
+                    </a>
+                  )}
+                  {item.contact?.whatsapp && (
+                    <a
+                      href={`https://wa.me/${item.contact.whatsapp.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: "#15803d", fontWeight: 600 }}
+                    >
+                      💬 WhatsApp: {item.contact.whatsapp}
+                    </a>
+                  )}
                   {item.contact?.email && <a href={`mailto:${item.contact.email}`}>✉ {item.contact.email}</a>}
-                  {item.contact?.phone && <a href={`tel:${item.contact.phone}`}>☎ {item.contact.phone}</a>}
+                  {item.contact?.website && (
+                    <a href={item.contact.website} target="_blank" rel="noreferrer">
+                      🌐 Visit Website ↗
+                    </a>
+                  )}
                   {item.address?.city && (
-                    <p>
-                      ⌖ {item.address.area ? item.address.area + ", " : ""}
-                      {item.address.city}
+                    <p style={{ marginTop: "12px", fontSize: "13px" }}>
+                      ⌖ {[item.address.line1, item.address.area, item.address.city, item.address.postalCode].filter(Boolean).join(", ")}
                     </p>
                   )}
                   {(Number.isFinite(item.coordinates?.latitude) &&
                     Number.isFinite(item.coordinates?.longitude)) ||
                   item.address?.formatted ? (
                     <a
-                      className="detail-secondary"
+                      className="detail-primary"
+                      style={{ marginTop: "12px", textAlign: "center" }}
                       target="_blank"
                       rel="noreferrer"
                       href={
@@ -722,7 +1123,7 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
                             )}`
                       }
                     >
-                      Get directions ↗
+                      📍 Get directions on Google Maps ↗
                     </a>
                   ) : null}
                   <Link className="detail-secondary" href="/businesses">
@@ -905,19 +1306,7 @@ export default function PublicDetail({ kind, slug, initialItem = null, initialDa
       )}
 
       {/* Directory Footer */}
-      <footer className="saas-directory-footer">
-        <div className="footer-inner">
-          <div className="footer-left">
-            <Link href="/" className="footer-brand">
-              GaavConnect
-            </Link>
-            <p>Empowering local businesses and regional communities with modern visibility.</p>
-          </div>
-          <div className="footer-right">
-            <span>© {new Date().getFullYear()} GaavConnect · Made for Nashik & Maharashtra</span>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

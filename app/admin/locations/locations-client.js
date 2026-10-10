@@ -15,12 +15,12 @@ const LOCATION_TYPES = [
 ];
 const ALLOWED_PARENT_TYPES = {
     country: [],
-    state: ["country"],
-    district: ["state"],
-    city: ["district"],
-    town: ["district", "city", "region"],
-    village: ["district", "town", "region"],
-    locality: ["city", "town", "village", "locality", "region"],
+    state: ["country", "region"],
+    district: ["state", "region", "country"],
+    city: ["district", "state", "region", "country"],
+    town: ["district", "city", "region", "state"],
+    village: ["district", "town", "city", "region"],
+    locality: ["city", "town", "village", "locality", "district", "region"],
     region: ["country", "state", "district", "city", "region"],
 };
 const inputClass =
@@ -399,7 +399,7 @@ export default function LocationsClient() {
 
     async function toggleStatus(item) {
         const activating = item.status === "inactive";
-        if (!activating && !window.confirm("Deactivate this location? Locations referenced by businesses or active child locations cannot be deactivated.")) {
+        if (!activating && !window.confirm(`Deactivate "${item.name}"? This location and its listed places will be unlisted from the public website until reactivated.`)) {
             return;
         }
 
@@ -489,9 +489,9 @@ export default function LocationsClient() {
                             {LOCATION_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                         </select>
                     </Field>
-                    <Field label="Parent location" hint={["country", "region"].includes(form.type) ? "Optional for top-level country or region." : "Choose an active parent with a compatible location type."}>
-                        <select required={!["country", "region"].includes(form.type)} value={form.parent} onChange={(event) => setForm((current) => ({ ...current, parent: event.target.value }))} className={inputClass} disabled={optionsLoading}>
-                            <option value="">No parent</option>
+                    <Field label="Parent location" hint="Optional. Choose an active parent to place this location within a region or district, or leave as 'No parent' for top-level.">
+                        <select value={form.parent} onChange={(event) => setForm((current) => ({ ...current, parent: event.target.value }))} className={inputClass} disabled={optionsLoading}>
+                            <option value="">No parent (Top-level)</option>
                             {compatibleParents.map((item) => (
                                 <option key={item._id} value={item._id}>{item.name} ({item.type})</option>
                             ))}

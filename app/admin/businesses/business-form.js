@@ -76,6 +76,12 @@ function weeklyHoursToText(weekly = {}) {
     );
 }
 
+function normalizeTime(val) {
+    const trimmed = String(val || "").trim();
+    if (/^\d:[0-5]\d$/.test(trimmed)) return `0${trimmed}`;
+    return trimmed;
+}
+
 function parseWeeklyHours(textByDay) {
     const weekly = {};
     for (const [day] of DAYS) {
@@ -85,7 +91,9 @@ function parseWeeklyHours(textByDay) {
             continue;
         }
         weekly[day] = value.split(",").map((range) => {
-            const [open, close, ...extra] = range.trim().split("-").map((part) => part.trim());
+            const [openRaw, closeRaw, ...extra] = range.trim().split("-").map((part) => part.trim());
+            const open = normalizeTime(openRaw);
+            const close = normalizeTime(closeRaw);
             if (!open || !close || extra.length) {
                 throw new Error(`Enter opening hours for ${day} as HH:mm-HH:mm. Separate multiple periods with commas.`);
             }

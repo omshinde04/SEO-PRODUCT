@@ -194,6 +194,9 @@ export async function GET(request, { params }) {
                     match: { status: "active" },
                 })
                 .sort({
+                    isSponsored: -1,
+                    sponsoredPriority: -1,
+                    isFeatured: -1,
                     publishedAt: -1,
                     name: 1,
                     _id: 1,
@@ -206,9 +209,15 @@ export async function GET(request, { params }) {
             Business.countDocuments(businessFilter),
         ]);
 
-        const visibleBusinesses = businesses.filter(
-            (business) => business.category && business.location
-        );
+        const now = new Date();
+        const visibleBusinesses = businesses
+            .filter((business) => business.category && business.location)
+            .map((b) => {
+                if (b.isSponsored && b.sponsoredUntil && new Date(b.sponsoredUntil) < now) {
+                    return { ...b, isSponsored: false };
+                }
+                return b;
+            });
 
         return apiSuccess({
             item,

@@ -197,7 +197,7 @@ export async function GET(request) {
                     select: "name slug type address coverImage",
                     match: { status: "active" },
                 })
-                .sort({ publishedAt: -1, name: 1, _id: 1 })
+                .sort({ isSponsored: -1, sponsoredPriority: -1, isFeatured: -1, publishedAt: -1, name: 1, _id: 1 })
                 .skip(skip)
                 .limit(limit)
                 .lean()
@@ -205,7 +205,15 @@ export async function GET(request) {
             Business.countDocuments(filter),
         ]);
 
-        const visibleItems = items.filter((item) => item.category && item.location);
+        const now = new Date();
+        const visibleItems = items
+            .filter((item) => item.category && item.location)
+            .map((item) => {
+                if (item.isSponsored && item.sponsoredUntil && new Date(item.sponsoredUntil) < now) {
+                    return { ...item, isSponsored: false };
+                }
+                return item;
+            });
 
         return apiSuccess({
             items: visibleItems,

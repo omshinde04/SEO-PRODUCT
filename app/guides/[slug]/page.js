@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { connectDB } from "@/lib/db";
 import ContentItem from "@/models/ContentItem";
 import PublicInfoPage from "@/components/public-info-page";
+import StructuredData from "@/components/structured-data";
+import { getEntityStructuredData } from "@/lib/seo/public-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -91,23 +93,32 @@ async function getGuide(slug) {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gaavconnect.in";
   const guide = await getGuide(slug);
   if (!guide) return { title: "Guide not found | GaavConnect", robots: { index: false, follow: true } };
   const title = `${guide.title} | GaavConnect Guides`;
+  const canonical = `${siteUrl}/guides/${slug}`;
   return {
     title: { absolute: title },
     description: guide.description,
-    alternates: { canonical: `/guides/${slug}` },
+    keywords: [guide.title, "Nashik local guide", "Igatpuri", "Ghoti", "GaavConnect"],
+    alternates: { canonical },
     openGraph: {
       type: "article",
       siteName: "GaavConnect",
       title,
       description: guide.description,
-      url: `/guides/${slug}`,
+      url: canonical,
       locale: "en_IN",
-      ...(guide.coverImage?.url ? { images: [{ url: guide.coverImage.url, alt: guide.title }] } : {}),
+      ...(guide.coverImage?.url ? { images: [{ url: guide.coverImage.url, alt: guide.title }] } : { images: [`${siteUrl}/gaavconnect-logo.svg`] }),
     },
-    twitter: { card: "summary_large_image", title, description: guide.description },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: guide.description,
+      site: "@gaavconnect.in",
+      creator: "@gaavconnect.in",
+    },
   };
 }
 
@@ -115,20 +126,25 @@ export default async function GuideDetailPage({ params }) {
   const { slug } = await params;
   const guide = await getGuide(slug);
   if (!guide) notFound();
+  const structuredData = await getEntityStructuredData({ type: "guide", slug });
+
   return (
-    <PublicInfoPage
-      eyebrow={guide.location ? `FIELD GUIDE · ${guide.location.toUpperCase()}` : "GAAVCONNECT FIELD NOTES"}
-      title={guide.title}
-      description={guide.description}
-      heroImage={guide.coverImage}
-      breadcrumbs={[{ label: "Local guides", href: "/guides" }, { label: guide.title }]}
-      sections={guide.sections}
-      cta={{
-        title: "Turn useful information into a local discovery.",
-        description: "Browse the businesses, categories and locations currently available in the directory.",
-        href: "/businesses",
-        label: "Explore businesses",
-      }}
-    />
+    <>
+      <StructuredData data={structuredData} />
+      <PublicInfoPage
+        eyebrow={guide.location ? `FIELD GUIDE · ${guide.location.toUpperCase()}` : "GAAVCONNECT FIELD NOTES"}
+        title={guide.title}
+        description={guide.description}
+        heroImage={guide.coverImage}
+        breadcrumbs={[{ label: "Local guides", href: "/guides" }, { label: guide.title }]}
+        sections={guide.sections}
+        cta={{
+          title: "Turn useful information into a local discovery.",
+          description: "Browse the businesses, categories and locations currently available in the directory.",
+          href: "/businesses",
+          label: "Explore businesses",
+        }}
+      />
+    </>
   );
 }

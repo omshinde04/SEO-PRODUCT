@@ -132,14 +132,7 @@ function validateCoordinates(coordinates = {}) {
 }
 
 async function validateParent(parentId, childType) {
-    if (parentId === null) {
-        if (childType !== "country" && childType !== "region") {
-            return apiError(
-                `${childType} locations must have a parent location.`,
-                400
-            );
-        }
-
+    if (!parentId) {
         return null;
     }
 

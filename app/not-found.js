@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PublicNavbar from "@/components/public-navbar";
+import PublicFooter from "@/components/public-footer";
 
 export const metadata = {
   title: "Page Not Found | GaavConnect",
@@ -49,9 +50,7 @@ export default function NotFound() {
           </div>
         </div>
       </main>
-      <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} GaavConnect · Discover Local Businesses
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
